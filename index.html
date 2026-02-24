@@ -3,343 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Miyasho Edition v25)</title>
+    <title>UT-Visualizer Pro (v24: Miyasho Special)</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        /* --- Tactical Dark UI --- */
         :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { padding: 12px 20px; border-bottom: 2px solid var(--accent-color); background-color: #000; display: flex; justify-content: space-between; align-items: center; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { padding: 10px 20px; border-bottom: 2px solid var(--accent-color); background: #000; display: flex; justify-content: space-between; align-items: center; }
         .main-container { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
-        .canvas-area { flex: 2; position: relative; background-color: #111; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; }
-        canvas { background-color: transparent; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 100%; height: auto; }
-        #statusOverlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-color); font-weight: bold; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); background-color: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px dashed var(--accent-color); }
-        #ocrLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: var(--accent-color); padding: 25px; border: 2px solid var(--accent-color); z-index: 100; display: none; text-align: center; box-shadow: 0 0 20px rgba(0,255,65,0.3); }
-        .input-panel { flex: 1; min-width: 320px; max-width: 400px; background-color: var(--panel-color); padding: 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .input-group label { display: block; font-size: 0.8rem; color: var(--accent-color); margin-bottom: 4px; }
-        .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 10px; font-size: 1rem; box-sizing: border-box; font-family: 'Courier New', monospace; }
-        .input-group input:focus, .input-group select:focus { border-color: var(--accent-color); outline: none; }
-        input[readonly] { color: #888; border-color: #222; }
-        .btn-photo { width: 100%; padding: 12px 5px; background-color: var(--accent-color); color: #000; border: none; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s; border-radius: 4px; }
-        .btn-photo:hover:not(:disabled) { filter: brightness(1.2); }
-        .btn-photo:disabled { background-color: #555; cursor: not-allowed; color: #888; }
-        .btn-doc { background-color: #ff9900; } 
-        #imgPreview { width: 100%; height: auto; border: 1px solid #444; margin-top: 5px; display: none; filter: grayscale(1) contrast(1.2); }
-        .instruction { font-size: 0.75rem; color: #ff9900; background: rgba(255,153,0,0.1); padding: 8px; border-left: 3px solid #ff9900; margin-bottom: 5px; }
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .canvas-area { flex: 1; min-height: 350px; } .input-panel { border-left: none; border-top: 2px solid var(--accent-color); height: auto; } }
+        .canvas-area { flex: 2; position: relative; background: #111; display: flex; align-items: center; justify-content: center; }
+        canvas { background: transparent; box-shadow: 0 0 30px #000; max-width: 100%; height: auto; }
+        #ocrLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: var(--accent-color); padding: 20px; border: 2px solid var(--accent-color); z-index: 100; display: none; text-align: center; }
+        .input-panel { flex: 1; min-width: 320px; max-width: 400px; background: var(--panel-color); padding: 15px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; }
+        .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 8px; font-size: 1rem; box-sizing: border-box; }
+        .btn-photo { width: 100%; padding: 12px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4px; }
+        .btn-machine { background: var(--accent-color); color: #000; }
+        .btn-doc { background: #ff9900; color: #000; }
+        #imgPreview { width: 100%; margin-top: 5px; border: 1px solid #444; display: none; }
+        @media (max-width: 768px) { .main-container { flex-direction: column; } .input-panel { border-left: none; border-top: 2px solid var(--accent-color); max-width: 100%; } }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold;">UT-VISUALIZER // MIYASHO_SYSTEM_v25</div>
-    <div style="font-size: 0.8rem; opacity: 0.7;">製作者: Y.HIGA</div>
+    <div style="font-weight: bold;">UT-VISUALIZER // v24</div>
+    <div style="font-size: 0.7rem; opacity: 0.7;">Operator: HIGA</div>
 </header>
 
 <div class="main-container">
     <div class="canvas-area">
         <canvas id="utCanvas" width="800" height="500"></canvas>
-        <div id="statusOverlay">READY</div>
         <div id="ocrLoading">
-            <div id="ocrModeText" style="font-weight:bold; letter-spacing:2px; margin-bottom:5px;">AI解析中...</div>
-            <div id="ocrProgress" style="font-size:1.5rem;">0%</div>
+            <div id="ocrStatus">AI解析中...</div>
+            <div id="ocrProgress">0%</div>
         </div>
     </div>
 
     <div class="input-panel">
         <div class="input-group">
-            <label>板厚 T (mm) [▽選択]</label>
+            <label>板厚 T (mm)</label>
             <select id="thickness" onchange="draw()">
-                <option value="9">9 mm</option>
-                <option value="12">12 mm</option>
-                <option value="16">16 mm</option>
-                <option value="19">19 mm</option>
-                <option value="22">22 mm</option>
-                <option value="25" selected>25 mm</option>
-                <option value="28">28 mm</option>
-                <option value="32">32 mm</option>
-                <option value="36">36 mm</option>
-                <option value="40">40 mm</option>
-                <option value="45">45 mm</option>
-                <option value="50">50 mm</option>
+                <option value="9">9 mm</option><option value="12">12 mm</option><option value="16">16 mm</option><option value="19">19 mm</option><option value="22">22 mm</option><option value="25" selected>25 mm</option><option value="50">50 mm</option>
             </select>
         </div>
+        <div class="input-group"><label>屈折角 θ (deg)</label><input type="number" id="angle" value="70" step="0.1" oninput="draw()"></div>
+        <div class="input-group"><label>探触子位置 Y0 (mm)</label><input type="number" id="probePos" value="75" oninput="draw()"></div>
+        <div class="input-group"><label>ビーム路程 W (mm)</label><input type="number" id="beamPath" value="80" step="0.1" oninput="draw()" style="background:#222; color:var(--accent-color);"></div>
         
-        <div class="input-group">
-            <label>開先形状 (Joint Shape)</label>
-            <select id="jointShape" onchange="draw()">
-                <option value="single_bevel">レ形開先 (片側垂直)</option>
-                <option value="v_groove">V形開先 (両側斜め)</option>
-            </select>
+        <div style="display: flex; gap: 8px; margin: 10px 0;">
+            <input type="file" id="fileInput" accept="image/*" style="display:none">
+            <button class="btn-photo btn-machine" onclick="mode='machine';fileInput.click()">🎯探傷器</button>
+            <button class="btn-photo btn-doc" onclick="mode='doc';fileInput.click()">📄検査表</button>
         </div>
+        <img id="imgPreview">
+        <div id="ocrLog" style="font-size:0.7rem; color:#888; white-space:pre-wrap"></div>
 
-        <div class="input-group">
-            <label>屈折角 θ (deg)</label>
-            <input type="number" id="angle" value="69.0" step="0.1" oninput="draw()">
-        </div>
-        <div class="input-group" style="border: 1px solid #00ff41; padding: 10px; background: rgba(0,255,65,0.05);">
-            <label>探触子位置 Y0 (mm) [入射点]</label>
-            <input type="number" id="probePos" value="30.0" step="0.5" oninput="draw()">
-        </div>
-        <div class="input-group">
-            <label>ビーム路程 W (mm)</label>
-            <input type="number" id="beamPath" value="18.1" step="0.5" oninput="draw()" style="font-weight:bold; color:#fff; background:#333;">
-        </div>
+        <div class="input-group"><label>深さ d (mm)</label><input type="number" id="depth" readonly></div>
+        <div class="input-group"><label>水平距離 y (mm)</label><input type="number" id="distance" readonly></div>
         
-        <div style="border-top: 1px solid #444; margin: 5px 0;"></div>
-        
-        <div class="input-group">
-            <div class="instruction" id="instructionText">
-                待機中...
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <input type="file" id="fileInput" accept="image/*" style="display: none;">
-                <button class="btn-photo" id="btnMachine" onclick="startOCR('machine')" style="flex:1;">
-                    <span>🎯</span> 探傷器(W)
-                </button>
-                <button class="btn-photo btn-doc" id="btnDoc" onclick="startOCR('doc')" style="flex:1;">
-                    <span>📄</span> 検査表(Y/W)
-                </button>
-            </div>
-            <img id="imgPreview" alt="Preview">
-            <div id="ocrResult" style="font-size: 0.75rem; color: #aaa; margin-top: 5px; white-space: pre-wrap; line-height: 1.4; max-height: 100px; overflow-y: auto;"></div>
-        </div>
-
-        <div class="input-group">
-            <label>深さ d (mm)</label>
-            <input type="number" id="depth" value="-" readonly>
-        </div>
-        <div class="input-group">
-            <label>水平距離 y (mm)</label>
-            <input type="number" id="distance" value="-" readonly>
-        </div>
-
-        <div style="margin-top: auto; text-align: center; font-size: 0.7rem; color: #666;">
-            製作者: Y.HIGA<br>
-            MIYAMASA KOGYO DESIGN DEPT.
-        </div>
+        <div style="text-align:center; font-size:0.6rem; color:#555; margin-top:auto;">MIYAMASA KOGYO DESIGN DEPT.</div>
     </div>
 </div>
 
 <script>
+    let mode = 'machine';
     const canvas = document.getElementById('utCanvas');
     const ctx = canvas.getContext('2d');
-    const statusOverlay = document.getElementById('statusOverlay');
     const fileInput = document.getElementById('fileInput');
-    const imgPreview = document.getElementById('imgPreview');
-    const ocrLoading = document.getElementById('ocrLoading');
-    const ocrProgress = document.getElementById('ocrProgress');
-    const ocrModeText = document.getElementById('ocrModeText');
-    const ocrResult = document.getElementById('ocrResult');
-    const btnMachine = document.getElementById('btnMachine');
-    const btnDoc = document.getElementById('btnDoc');
-    const instructionText = document.getElementById('instructionText');
 
-    let currentOcrMode = 'machine';
 
-    function startOCR(mode) {
-        currentOcrMode = mode;
-        if (mode === 'machine') {
-            instructionText.innerHTML = '⚠️ <b>探傷器モード:</b> Wの数値部分をドアップで。';
-        } else {
-            instructionText.innerHTML = '⚠️ <b>検査表モード:</b> Y と W が入るように横長に撮影。';
+    // --- OCR前処理（数字向け）---
+    // 目的：撮影ムラ／暗い背景／圧縮ノイズでも「黒文字 on 白背景」に寄せて精度を上げる
+    function preprocessForDigits(srcCanvas) {
+        const w = srcCanvas.width, h = srcCanvas.height;
+        const ctx = srcCanvas.getContext('2d');
+        const img = ctx.getImageData(0, 0, w, h);
+        const d = img.data;
+
+        // 1) グレースケール化
+        const gray = new Uint8ClampedArray(w * h);
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+            gray[p] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0;
         }
-        fileInput.click();
+
+        // 2) 大津の二値化（Otsu）
+        const hist = new Array(256).fill(0);
+        for (let i = 0; i < gray.length; i++) hist[gray[i]]++;
+        const total = gray.length;
+
+        let sum = 0;
+        for (let t = 0; t < 256; t++) sum += t * hist[t];
+
+        let sumB = 0, wB = 0, wF = 0;
+        let varMax = 0, threshold = 128;
+
+        for (let t = 0; t < 256; t++) {
+            wB += hist[t];
+            if (wB === 0) continue;
+            wF = total - wB;
+            if (wF === 0) break;
+
+            sumB += t * hist[t];
+            const mB = sumB / wB;
+            const mF = (sum - sumB) / wF;
+            const between = wB * wF * (mB - mF) * (mB - mF);
+
+            if (between > varMax) {
+                varMax = between;
+                threshold = t;
+            }
+        }
+
+        // 3) 二値化（黒0 / 白255）
+        let black = 0;
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+            const v = gray[p] < threshold ? 0 : 255;
+            if (v === 0) black++;
+            d[i] = d[i + 1] = d[i + 2] = v;
+            d[i + 3] = 255;
+        }
+
+        // 4) 自動反転（背景が黒優勢なら、白背景に反転）
+        if (black / total > 0.5) {
+            for (let i = 0; i < d.length; i += 4) {
+                const v = 255 - d[i];
+                d[i] = d[i + 1] = d[i + 2] = v;
+            }
+        }
+
+        // 5) 軽い「太らせ」（1回だけの簡易dilation：細い数字が欠けにくくなる）
+        const bin = new Uint8ClampedArray(total);
+        for (let p = 0, i = 0; p < total; p++, i += 4) bin[p] = d[i]; // 0 or 255
+
+        const out = new Uint8ClampedArray(total);
+        out.set(bin);
+        const idx = (x, y) => y * w + x;
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const p = idx(x, y);
+                if (bin[p] === 0) {
+                    out[idx(x - 1, y)] = 0;
+                    out[idx(x + 1, y)] = 0;
+                    out[idx(x, y - 1)] = 0;
+                    out[idx(x, y + 1)] = 0;
+                }
+            }
+        }
+
+        for (let p = 0, i = 0; p < total; p++, i += 4) {
+            const v = out[p];
+            d[i] = d[i + 1] = d[i + 2] = v;
+        }
+
+        ctx.putImageData(img, 0, 0);
     }
 
-    // 確実にUIを元に戻す関数
-    function resetOCRUI() {
-        ocrLoading.style.display = 'none';
-        btnMachine.disabled = false;
-        btnDoc.disabled = false;
-        btnMachine.innerHTML = '<span>🎯</span> 探傷器(W)';
-        btnDoc.innerHTML = '<span>📄</span> 検査表(Y/W)';
-        fileInput.value = ''; 
-    }
 
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
-
-        ocrLoading.style.display = 'block';
-        ocrProgress.innerText = '0%';
-        ocrResult.innerText = "";
-        btnMachine.disabled = true;
-        btnDoc.disabled = true;
+        if(!file) return;
         
-        ocrModeText.innerText = "AI解析中...";
+        document.getElementById('ocrLoading').style.display = 'block';
+        document.getElementById('ocrLog').innerText = "前処理中...";
 
         const reader = new FileReader();
-        reader.onerror = () => { alert("読込失敗"); resetOCRUI(); };
-
         reader.onload = (event) => {
             const img = new Image();
-            img.onerror = () => { alert("画像展開失敗"); resetOCRUI(); };
-
             img.onload = async () => {
+                // --- 画像処理 (現場特化型) ---
+                // 解像度が足りないと数字が潰れるので、いったん大きめにリサイズしてから二値化
+                const TARGET_W = 1400;
+                const workCanvas = document.createElement('canvas');
+                const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+
+                workCanvas.width = TARGET_W;
+                workCanvas.height = Math.round(img.height * (TARGET_W / img.width));
+
+                workCtx.imageSmoothingEnabled = true;
+                workCtx.imageSmoothingQuality = 'high';
+                workCtx.drawImage(img, 0, 0, workCanvas.width, workCanvas.height);
+
+                // 数字OCR向け前処理（二値化＋自動反転＋軽い太らせ）
+                preprocessForDigits(workCanvas);
+
+                // プレビュー表示（PNG：JPEGの圧縮ノイズを避ける）
+                const previewUrl = workCanvas.toDataURL('image/png');
+                document.getElementById('imgPreview').src = previewUrl;
+                document.getElementById('imgPreview').style.display = 'block';
+
                 try {
-                    // 画像の極端な重さを防ぐ
-                    const MAX_SIZE = 600;
-                    let width = img.width; let height = img.height;
-                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
-                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
-
-                    const tmpCanvas = document.createElement('canvas');
-                    tmpCanvas.width = width; tmpCanvas.height = height;
-                    const tCtx = tmpCanvas.getContext('2d');
-                    tCtx.drawImage(img, 0, 0, width, height);
-                    const compressedDataUrl = tmpCanvas.toDataURL('image/jpeg', 0.8); // 圧縮率を少し下げる
-                    
-                    imgPreview.src = compressedDataUrl;
-                    imgPreview.style.display = 'block';
-
-                    // 15秒の強制タイムアウト（絶対フリーズさせない）
-                    const timeoutPromise = new Promise((_, reject) => { setTimeout(() => reject(new Error("TIME_OUT")), 15000); });
-
-                    const performOCR = async () => {
-                        const worker = await Tesseract.createWorker({
-                            logger: m => { if (m.status === 'recognizing text') ocrProgress.innerText = Math.round(m.progress * 100) + '%'; }
-                        });
-                        await worker.loadLanguage('eng');
-                        await worker.initialize('eng');
-                        
-                        // 制限を緩めて、罫線でAIをパニックさせない (PSM 6: ブロック読み)
-                        await worker.setParameters({ 
-                            tessedit_pageseg_mode: '6' 
-                        });
-
-                        const res = await worker.recognize(compressedDataUrl);
-                        await worker.terminate();
-                        return res.data.text;
-                    };
-
-                    const text = await Promise.race([performOCR(), timeoutPromise]);
-                    
-                    // ガラクタの中から数字だけを抽出
-                    const numsMatch = text.match(/\d+(?:\.\d+)?/g);
-
-                    if (numsMatch && numsMatch.length > 0) {
-                        const cleanNums = numsMatch.map(Number).filter(n => n !== 1 && n > 0 && n < 500);
-
-                        if (cleanNums.length > 0) {
-                            if (currentOcrMode === 'machine') {
-                                const bestW = Math.max(...cleanNums);
-                                document.getElementById('beamPath').value = bestW;
-                                draw();
-                                ocrResult.innerHTML = `<span style="color:#00ff41;">成功: W = ${bestW}</span>`;
-                            } else {
-                                const decimals = cleanNums.filter(n => n % 1 !== 0);
-                                const integers = cleanNums.filter(n => n % 1 === 0);
-                                
-                                let extW = decimals.length > 0 ? Math.max(...decimals) : null;
-                                let extY = integers.length > 0 ? Math.max(...integers) : null;
-
-                                if (extW && extY) {
-                                    document.getElementById('probePos').value = extY;
-                                    document.getElementById('beamPath').value = extW;
-                                    draw();
-                                    ocrResult.innerHTML = `<span style="color:#ff9900;">表読取成功！</span><br>Y(整数最大): ${extY} / W(小数最大): ${extW}<br><span style="color:#ff3e3e;">※板厚(T)は手動で確認してください！</span>`;
-                                } else {
-                                    ocrResult.innerText = "YとWの組み合わせが見つかりません。\n抽出: " + cleanNums.join(', ');
-                                }
+                    const worker = await Tesseract.createWorker({
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                document.getElementById('ocrProgress').innerText = Math.round(m.progress * 100) + '%';
+                            } else if (m.status) {
+                                document.getElementById('ocrStatus').innerText = m.status + '...';
                             }
-                        } else { ocrResult.innerText = "有効な数字がありません。"; }
-                    } else { ocrResult.innerText = "数字を認識できませんでした。"; }
+                        }
+                    });
 
-                } catch (error) {
-                    if (error.message === "TIME_OUT") { 
-                        alert("スキャンがタイムアウトしました。もう少し近づいて撮影してください。"); 
-                    } else { 
-                        console.error("OCR Error:", error); 
-                        alert("AIエンジンでエラーが発生しました。"); 
+                    // 数字だけ拾うなら英語モデルでOK（軽い）。文字も必要なら 'jpn' に変更。
+                    await worker.loadLanguage('eng');
+                    await worker.initialize('eng');
+
+                    // PSM：探傷器は「1行/1ブロック」扱いが安定しやすい
+                    await worker.setParameters({
+                        tessedit_char_whitelist: '0123456789.',
+                        classify_bln_numeric_mode: '1',
+                        user_defined_dpi: '300',
+                        tessedit_pageseg_mode: (mode === 'machine') ? '7' : '6', // 7=single line, 6=single block
+                        tessedit_ocr_engine_mode: '1' // LSTM only
+                    });
+
+                    const { data: { text } } = await worker.recognize(workCanvas);
+                    await worker.terminate();
+
+                    // よくある誤認識の軽い補正（O↔0, I/l↔1, S↔5, B↔8 など）
+                    const fixed = text
+                        .replace(/[Oo〇]/g, '0')
+                        .replace(/[Il|]/g, '1')
+                        .replace(/[Ss]/g, '5')
+                        .replace(/[Bb]/g, '8');
+
+                    const nums = fixed.match(/\d+(\.\d+)?/g);
+                    document.getElementById('ocrLog').innerText =
+                        "OCR RAW:\\n" + text.trim() + "\\n\\nOCR FIXED:\\n" + fixed.trim() + "\\n\\nNUMS:\\n" + (nums ? nums.join(', ') : '(none)');
+
+                    if (nums && nums.length > 0) {
+                        const parsed = nums.map(Number).filter(n => n > 5 && n < 500);
+
+                        if (mode === 'machine') {
+                            // 探傷器：候補が複数ある時は「最大値」を採用（Wが一番大きい前提）
+                            document.getElementById('beamPath').value = Math.max(...parsed);
+                        } else {
+                            // 検査表：屈折角(60-80)を基準に前後を拾う
+                            let thIdx = parsed.findIndex(n => n >= 60 && n <= 80);
+                            if (thIdx !== -1) {
+                                if (parsed[thIdx - 2]) document.getElementById('thickness').value = Math.round(parsed[thIdx - 2]);
+                                document.getElementById('angle').value = parsed[thIdx];
+                                if (parsed[thIdx + 2]) document.getElementById('probePos').value = parsed[thIdx + 2];
+                                if (parsed[thIdx + 3]) document.getElementById('beamPath').value = parsed[thIdx + 3];
+                            }
+                        }
+                        draw();
+                    } else {
+                        alert("数字が検出できません。もっとアップで撮って、明るさ/反射を避けてください。");
                     }
-                } finally {
-                    resetOCRUI(); // 絶対にロックを解除する
+                } catch (err) {
+                    console.error(err);
+                    alert("OCRエラー（詳細はコンソール）");
                 }
+                document.getElementById('ocrLoading').style.display = 'none';
             };
             img.src = event.target.result;
         };
         reader.readAsDataURL(file);
     });
 
-    // --- 物理エンジン搭載の描画ロジック ---
     function draw() {
-        const T = parseFloat(document.getElementById('thickness').value) || 25;
-        const thetaDeg = parseFloat(document.getElementById('angle').value) || 70;
-        const Y0 = parseFloat(document.getElementById('probePos').value) || 0; 
-        const W = parseFloat(document.getElementById('beamPath').value) || 0;
-        const jointShape = document.getElementById('jointShape').value; // ★復活
-        const theta = thetaDeg * (Math.PI / 180);
+        const T = parseFloat(document.getElementById('thickness').value);
+        const theta = (parseFloat(document.getElementById('angle').value)) * (Math.PI / 180);
+        const Y0 = parseFloat(document.getElementById('probePos').value);
+        const W = parseFloat(document.getElementById('beamPath').value);
 
-        const y_calc = W * Math.sin(theta);
-        const d_calc = W * Math.cos(theta);
+        const y = W * Math.sin(theta);
+        const d_raw = W * Math.cos(theta);
+        
+        // 物理計算 (裏当て金 9x25)
         const x_at_T = Y0 - T * Math.tan(theta);
-        const isHitBackingBar = (x_at_T >= -12.5 && x_at_T <= 12.5);
-        const effective_T = isHitBackingBar ? T + 9 : T;
+        const isBacking = (Math.abs(x_at_T) < 12.5);
+        const effT = isBacking ? T + 9 : T;
+
+        let d_disp = (d_raw <= effT) ? d_raw : (effT - (d_raw - effT));
         
-        let d_display = 0; let isReflected = false; let skipText = "";
-        if (d_calc <= effective_T) {
-            d_display = d_calc; isReflected = false; 
-            skipText = (isHitBackingBar && d_calc > T) ? "0.5 SKIP (裏当て金へ透過)" : "0.5 SKIP (直射)";
-        } else {
-            d_display = effective_T - (d_calc - effective_T); isReflected = true; skipText = "1.0 SKIP (反射)";
-        }
+        document.getElementById('depth').value = d_disp.toFixed(1);
+        document.getElementById('distance').value = y.toFixed(1);
 
-        document.getElementById('depth').value = d_display.toFixed(1);
-        document.getElementById('distance').value = y_calc.toFixed(1);
-        statusOverlay.innerText = skipText;
-        renderPhysicsView(T, effective_T, theta, W, y_calc, d_display, isReflected, jointShape, Y0);
-    }
-
-    function renderPhysicsView(T, effective_T, theta, W, y, d, isReflected, jointShape, Y0) {
+        // 描画
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const scale = Math.min(6.0, 220 / T); 
-        const centerY = canvas.height / 2; const startY = centerY - (T * scale) / 2; const weldCenterX = 250; 
-        ctx.save();
-        const plateWidth = 1000; const gap = 7 * scale; const backingHeight = 9 * scale; const backingWidth = 25 * scale; 
+        const sc = 5.0; const ox = 250; const oy = 250 - (T*sc/2);
         
-        ctx.fillStyle = "#333"; ctx.strokeStyle = "#888"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.rect(weldCenterX - gap/2 - plateWidth, startY, plateWidth, T * scale); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.rect(weldCenterX + gap/2, startY, plateWidth, T * scale); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#222"; ctx.strokeStyle = "#666";
-        ctx.beginPath(); ctx.rect(weldCenterX - backingWidth/2, startY + T*scale, backingWidth, backingHeight); ctx.fill(); ctx.stroke();
-        const grooveAngle = 35 * (Math.PI / 180); const grooveTopWidth = (T * scale) * Math.tan(grooveAngle);
-        ctx.fillStyle = "rgba(80, 80, 80, 0.8)"; ctx.beginPath(); ctx.moveTo(weldCenterX - gap/2, startY + T*scale); ctx.lineTo(weldCenterX + gap/2, startY + T*scale); 
+        ctx.fillStyle = "#333"; ctx.fillRect(ox - 500, oy, 500 - 3.5*sc, T*sc); // 板左
+        ctx.fillRect(ox + 3.5*sc, oy, 500, T*sc); // 板右
+        ctx.fillStyle = "#222"; ctx.fillRect(ox - 12.5*sc, oy + T*sc, 25*sc, 9*sc); // 裏当て金
         
-        // ★復活：レ形とV形の分岐
-        if (jointShape === 'single_bevel') { 
-            ctx.lineTo(weldCenterX + gap/2 + grooveTopWidth, startY); 
-            ctx.lineTo(weldCenterX - gap/2, startY); 
-        } else { 
-            ctx.lineTo(weldCenterX + gap/2 + grooveTopWidth, startY); 
-            ctx.lineTo(weldCenterX - gap/2 - grooveTopWidth, startY); 
-        }
-        ctx.closePath(); ctx.fill(); ctx.stroke();
-        
-        const probeX = weldCenterX + Y0 * scale; 
-        ctx.fillStyle = "#ccc"; ctx.fillRect(probeX - 20, startY - 25, 40, 25); ctx.strokeStyle = "#fff"; ctx.strokeRect(probeX - 20, startY - 25, 40, 25);
-        ctx.beginPath(); ctx.strokeStyle = "#555"; ctx.lineWidth = 2; ctx.moveTo(probeX + 10, startY - 25); ctx.bezierCurveTo(probeX + 20, startY - 50, probeX + 40, startY - 10, probeX + 60, startY - 30); ctx.stroke();
-        
-        ctx.fillStyle = "#ff3e3e";
-        ctx.beginPath();
-        ctx.moveTo(probeX, startY); 
-        ctx.lineTo(probeX - 6, startY - 10);
-        ctx.lineTo(probeX + 6, startY - 10);
-        ctx.fill();
+        const px = ox + Y0*sc;
+        ctx.fillStyle = "#ccc"; ctx.fillRect(px-20, oy-25, 40, 25); // 探触子
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.moveTo(px, oy); ctx.lineTo(px-5, oy-8); ctx.lineTo(px+5, oy-8); ctx.fill(); // 入射点▽
 
-        ctx.beginPath(); ctx.lineWidth = 2; ctx.strokeStyle = "#00ff41"; ctx.moveTo(probeX, startY);
-        let flawX, flawY;
-        if (!isReflected) {
-            const x_move = W * Math.sin(theta) * scale; const y_move = W * Math.cos(theta) * scale; flawX = probeX - x_move; flawY = startY + y_move; ctx.lineTo(flawX, flawY);
+        ctx.strokeStyle = "#00ff41"; ctx.setLineDash(d_raw > effT ? [5, 5] : []);
+        ctx.beginPath(); ctx.moveTo(px, oy);
+        if(d_raw <= effT) {
+            ctx.lineTo(px - y*sc, oy + d_raw*sc);
         } else {
-            ctx.setLineDash([5, 5]); const x_to_bottom = effective_T * Math.tan(theta) * scale; const reflectX = probeX - x_to_bottom; const reflectY = startY + effective_T * scale; ctx.lineTo(reflectX, reflectY);
-            const W_to_bottom = effective_T / Math.cos(theta); const W_remain = W - W_to_bottom; const x_move_2 = W_remain * Math.sin(theta) * scale; const y_move_2 = W_remain * Math.cos(theta) * scale; flawX = reflectX - x_move_2; flawY = reflectY - y_move_2; ctx.lineTo(flawX, flawY);
+            const rx = px - effT * Math.tan(theta) * sc;
+            ctx.lineTo(rx, oy + effT*sc); ctx.lineTo(px - y*sc, oy + d_disp*sc);
         }
-        ctx.stroke(); ctx.setLineDash([]);
-        ctx.beginPath(); ctx.arc(flawX, flawY, 5, 0, Math.PI * 2); ctx.fillStyle = "#ff3e3e"; ctx.fill(); ctx.strokeStyle = "#ff3e3e"; ctx.beginPath(); ctx.arc(flawX, flawY, 10, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
+        ctx.stroke();
+
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(px - y*sc, oy + d_disp*sc, 6, 0, 7); ctx.fill(); // きず
     }
-    
     draw();
 </script>
 </body>
