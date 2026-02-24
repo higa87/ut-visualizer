@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Miyasho Edition v26)</title>
+    <title>UT-Visualizer Pro (Miyasho Edition v25)</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         /* --- Tactical Dark UI --- */
@@ -14,7 +14,7 @@
         .canvas-area { flex: 2; position: relative; background-color: #111; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; }
         canvas { background-color: transparent; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 100%; height: auto; }
         #statusOverlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-color); font-weight: bold; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); background-color: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px dashed var(--accent-color); }
-        #ocrLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: var(--accent-color); padding: 25px; border: 2px solid var(--accent-color); z-index: 100; display: none; text-align: center; box-shadow: 0 0 20px rgba(0,255,65,0.3); width: 80%; max-width: 300px;}
+        #ocrLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: var(--accent-color); padding: 25px; border: 2px solid var(--accent-color); z-index: 100; display: none; text-align: center; box-shadow: 0 0 20px rgba(0,255,65,0.3); }
         .input-panel { flex: 1; min-width: 320px; max-width: 400px; background-color: var(--panel-color); padding: 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .input-group label { display: block; font-size: 0.8rem; color: var(--accent-color); margin-bottom: 4px; }
         .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 10px; font-size: 1rem; box-sizing: border-box; font-family: 'Courier New', monospace; }
@@ -32,7 +32,7 @@
 <body>
 
 <header>
-    <div style="font-weight: bold;">UT-VISUALIZER // MIYASHO_SYSTEM_v26</div>
+    <div style="font-weight: bold;">UT-VISUALIZER // MIYASHO_SYSTEM_v25</div>
     <div style="font-size: 0.8rem; opacity: 0.7;">製作者: Y.HIGA</div>
 </header>
 
@@ -41,7 +41,7 @@
         <canvas id="utCanvas" width="800" height="500"></canvas>
         <div id="statusOverlay">READY</div>
         <div id="ocrLoading">
-            <div id="ocrModeText" style="font-weight:bold; letter-spacing:1px; margin-bottom:5px; font-size: 0.8rem;">起動中...</div>
+            <div id="ocrModeText" style="font-weight:bold; letter-spacing:2px; margin-bottom:5px;">AI解析中...</div>
             <div id="ocrProgress" style="font-size:1.5rem;">0%</div>
         </div>
     </div>
@@ -137,6 +137,71 @@
 
     let currentOcrMode = 'machine';
 
+    // --- OCR workerを使い回してタイムアウト/再DLを防ぐ ---
+    let ocrWorker = null;
+    let ocrWorkerPromise = null;
+
+    async function resetOcrWorkerHard() {
+        try { if (ocrWorker) await ocrWorker.terminate(); } catch (e) {}
+        ocrWorker = null;
+        ocrWorkerPromise = null;
+    }
+
+    async function getOcrWorker() {
+        if (ocrWorker) return ocrWorker;
+        if (ocrWorkerPromise) return ocrWorkerPromise;
+
+        ocrWorkerPromise = (async () => {
+            ocrModeText.innerText = "AI準備中...（初回は少し長め）";
+            const worker = await Tesseract.createWorker({
+                logger: m => {
+                    if (!m || !m.status) return;
+                    if (typeof m.progress === 'number') {
+                        const pct = Math.round(m.progress * 100);
+                        ocrProgress.innerText = pct + '%';
+                    }
+                    if (m.status !== 'recognizing text') {
+                        ocrModeText.innerText = "AI準備中... " + m.status;
+                    } else {
+                        ocrModeText.innerText = "AI解析中...";
+                    }
+                }
+            });
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            await worker.setParameters({
+                tessedit_char_whitelist: '0123456789.',
+                user_defined_dpi: '300'
+            });
+            ocrWorker = worker;
+            return worker;
+        })();
+
+        return ocrWorkerPromise;
+    }
+
+    async function runOCR(dataUrl, mode) {
+        const timeoutMs = ocrWorker ? 35000 : 90000; // 初回は言語DLなどで長め
+        const work = (async () => {
+            const worker = await getOcrWorker();
+            const psm = (mode === 'machine') ? '7' : '6'; // 探傷器=1行 / 検査表=ブロック
+            await worker.setParameters({ tessedit_pageseg_mode: psm });
+            const res = await worker.recognize(dataUrl);
+            return res.data.text;
+        })();
+
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("TIME_OUT")), timeoutMs)
+        );
+
+        return await Promise.race([work, timeoutPromise]);
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (ocrWorker) { try { ocrWorker.terminate(); } catch (e) {} }
+    });
+
+
     function startOCR(mode) {
         currentOcrMode = mode;
         if (mode === 'machine') {
@@ -147,6 +212,7 @@
         fileInput.click();
     }
 
+    // 確実にUIを元に戻す関数
     function resetOCRUI() {
         ocrLoading.style.display = 'none';
         btnMachine.disabled = false;
@@ -166,7 +232,7 @@
         btnMachine.disabled = true;
         btnDoc.disabled = true;
         
-        ocrModeText.innerText = "画像読込中...";
+        ocrModeText.innerText = "AI解析中...";
 
         const reader = new FileReader();
         reader.onerror = () => { alert("読込失敗"); resetOCRUI(); };
@@ -177,55 +243,47 @@
 
             img.onload = async () => {
                 try {
-                    ocrModeText.innerText = "画像軽量化中...";
-                    // ★さらに軽量化（500pxに）
-                    const MAX_SIZE = 500;
+                    // 画像の極端な重さを防ぐ
+                    const MAX_SIZE = (currentOcrMode === 'machine') ? 1200 : 1400;
                     let width = img.width; let height = img.height;
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
 
                     const tmpCanvas = document.createElement('canvas');
                     tmpCanvas.width = width; tmpCanvas.height = height;
-                    const tCtx = tmpCanvas.getContext('2d');
+                    const tCtx = tmpCanvas.getContext('2d', { willReadFrequently: true });
                     tCtx.drawImage(img, 0, 0, width, height);
-                    const compressedDataUrl = tmpCanvas.toDataURL('image/jpeg', 0.8);
+
+                    // 画面写真の反射/薄文字対策（軽めの二値化）
+                    try {
+                        const imgData = tCtx.getImageData(0, 0, width, height);
+                        const data = imgData.data;
+                        // サンプルして平均輝度
+                        let sum = 0, count = 0;
+                        for (let i = 0; i < data.length; i += 40) {
+                            const r = data[i], g = data[i+1], b = data[i+2];
+                            sum += (0.2126*r + 0.7152*g + 0.0722*b);
+                            count++;
+                        }
+                        const avg = count ? (sum / count) : 128;
+                        const thr = Math.max(40, Math.min(220, avg * 0.92));
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i], g = data[i+1], b = data[i+2];
+                            const lum = (0.2126*r + 0.7152*g + 0.0722*b);
+                            const v = lum < thr ? 0 : 255;
+                            data[i] = data[i+1] = data[i+2] = v;
+                        }
+                        tCtx.putImageData(imgData, 0, 0);
+                    } catch (e) {}
+                    const processedDataUrl = tmpCanvas.toDataURL('image/png');
                     
-                    imgPreview.src = compressedDataUrl;
+                    imgPreview.src = processedDataUrl;
                     imgPreview.style.display = 'block';
 
-                    // ★タイムアウトを30秒に延長
-                    const timeoutPromise = new Promise((_, reject) => { setTimeout(() => reject(new Error("TIME_OUT")), 30000); });
-
-                    const performOCR = async () => {
-                        const worker = await Tesseract.createWorker({
-                            logger: m => { 
-                                // ★今の状態を画面に表示
-                                if (m.status === 'recognizing text') {
-                                    ocrModeText.innerText = "文字読取中...";
-                                    ocrProgress.innerText = Math.round(m.progress * 100) + '%'; 
-                                } else {
-                                    // ダウンロード中などのステータスを表示
-                                    ocrModeText.innerText = m.status.toUpperCase() + "...";
-                                }
-                            }
-                        });
-                        
-                        ocrModeText.innerText = "エンジン起動中...";
-                        await worker.loadLanguage('eng');
-                        await worker.initialize('eng');
-                        
-                        await worker.setParameters({ 
-                            tessedit_pageseg_mode: '6' 
-                        });
-
-                        ocrModeText.innerText = "解析スタート...";
-                        const res = await worker.recognize(compressedDataUrl);
-                        await worker.terminate();
-                        return res.data.text;
-                    };
-
-                    const text = await Promise.race([performOCR(), timeoutPromise]);
+                    // タイムアウトしやすい「worker作り直し」をやめて、使い回し + 長めタイムアウトに変更
+                    const text = await runOCR(processedDataUrl, currentOcrMode);
                     
+                    // ガラクタの中から数字だけを抽出
                     const numsMatch = text.match(/\d+(?:\.\d+)?/g);
 
                     if (numsMatch && numsMatch.length > 0) {
@@ -258,13 +316,14 @@
 
                 } catch (error) {
                     if (error.message === "TIME_OUT") { 
-                        alert("30秒経過したためタイムアウトしました。スマホの回線速度や処理能力が追いついていない可能性があります。"); 
+                        alert("スキャンがタイムアウトしました。初回はAI準備で時間がかかる事があります。写真をもう少し寄って、文字を大きくして再撮影してね。");
+                        await resetOcrWorkerHard();
                     } else { 
                         console.error("OCR Error:", error); 
                         alert("AIエンジンでエラーが発生しました。"); 
                     }
                 } finally {
-                    resetOCRUI();
+                    resetOCRUI(); // 絶対にロックを解除する
                 }
             };
             img.src = event.target.result;
@@ -278,7 +337,7 @@
         const thetaDeg = parseFloat(document.getElementById('angle').value) || 70;
         const Y0 = parseFloat(document.getElementById('probePos').value) || 0; 
         const W = parseFloat(document.getElementById('beamPath').value) || 0;
-        const jointShape = document.getElementById('jointShape').value;
+        const jointShape = document.getElementById('jointShape').value; // ★復活
         const theta = thetaDeg * (Math.PI / 180);
 
         const y_calc = W * Math.sin(theta);
@@ -316,6 +375,7 @@
         const grooveAngle = 35 * (Math.PI / 180); const grooveTopWidth = (T * scale) * Math.tan(grooveAngle);
         ctx.fillStyle = "rgba(80, 80, 80, 0.8)"; ctx.beginPath(); ctx.moveTo(weldCenterX - gap/2, startY + T*scale); ctx.lineTo(weldCenterX + gap/2, startY + T*scale); 
         
+        // ★復活：レ形とV形の分岐
         if (jointShape === 'single_bevel') { 
             ctx.lineTo(weldCenterX + gap/2 + grooveTopWidth, startY); 
             ctx.lineTo(weldCenterX - gap/2, startY); 
