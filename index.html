@@ -3,162 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Miyasho Edition v23)</title>
+    <title>UT-Visualizer Pro (v24: Miyasho Special)</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { padding: 12px 20px; border-bottom: 2px solid var(--accent-color); background-color: #000; display: flex; justify-content: space-between; align-items: center; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { padding: 10px 20px; border-bottom: 2px solid var(--accent-color); background: #000; display: flex; justify-content: space-between; align-items: center; }
         .main-container { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
-        .canvas-area { flex: 2; position: relative; background-color: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        canvas { max-width: 100%; height: auto; }
-        #statusOverlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-color); font-weight: bold; background-color: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px dashed var(--accent-color); }
-        #ocrLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: var(--accent-color); padding: 25px; border: 2px solid var(--accent-color); z-index: 100; display: none; text-align: center; }
-        .input-panel { flex: 1; min-width: 320px; max-width: 400px; background-color: var(--panel-color); padding: 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .input-group label { display: block; font-size: 0.8rem; color: var(--accent-color); margin-bottom: 4px; }
-        .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 10px; font-size: 1rem; box-sizing: border-box; }
-        .btn-photo { width: 100%; padding: 15px; background-color: var(--accent-color); color: #000; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 4px; }
-        .btn-doc { background-color: #ff9900; margin-top: 5px; }
-        #imgPreview { width: 100%; height: auto; border: 1px solid #444; margin-top: 5px; display: none; }
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .canvas-area { flex: 1; min-height: 300px; } .input-panel { border-left: none; border-top: 2px solid var(--accent-color); } }
+        .canvas-area { flex: 2; position: relative; background: #111; display: flex; align-items: center; justify-content: center; }
+        canvas { background: transparent; box-shadow: 0 0 30px #000; max-width: 100%; height: auto; }
+        #ocrLoading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: var(--accent-color); padding: 20px; border: 2px solid var(--accent-color); z-index: 100; display: none; text-align: center; }
+        .input-panel { flex: 1; min-width: 320px; max-width: 400px; background: var(--panel-color); padding: 15px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; }
+        .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 8px; font-size: 1rem; box-sizing: border-box; }
+        .btn-photo { width: 100%; padding: 12px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4px; }
+        .btn-machine { background: var(--accent-color); color: #000; }
+        .btn-doc { background: #ff9900; color: #000; }
+        #imgPreview { width: 100%; margin-top: 5px; border: 1px solid #444; display: none; }
+        @media (max-width: 768px) { .main-container { flex-direction: column; } .input-panel { border-left: none; border-top: 2px solid var(--accent-color); max-width: 100%; } }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold;">UT-VISUALIZER // 宮昌工業 v23</div>
-    <div style="font-size: 0.8rem; opacity: 0.7;">開先復活＆精度向上版</div>
+    <div style="font-weight: bold;">UT-VISUALIZER // v24</div>
+    <div style="font-size: 0.7rem; opacity: 0.7;">Operator: HIGA</div>
 </header>
 
 <div class="main-container">
     <div class="canvas-area">
         <canvas id="utCanvas" width="800" height="500"></canvas>
-        <div id="statusOverlay">準備完了</div>
         <div id="ocrLoading">
-            <div id="ocrModeText" style="font-weight:bold; margin-bottom:5px;">AIが画像を解析中...</div>
-            <div id="ocrProgress" style="font-size:1.5rem;">0%</div>
-            <div id="ocrStep" style="font-size:0.7rem; color:#aaa; margin-top:10px;"></div>
+            <div id="ocrStatus">AI解析中...</div>
+            <div id="ocrProgress">0%</div>
         </div>
     </div>
 
     <div class="input-panel">
         <div class="input-group">
-            <label>板厚 T (mm) ⚠️まずこれを選択</label>
+            <label>板厚 T (mm)</label>
             <select id="thickness" onchange="draw()">
-                <option value="9">9 mm</option><option value="12">12 mm</option><option value="16">16 mm</option><option value="19">19 mm</option>
-                <option value="22">22 mm</option><option value="25" selected>25 mm</option><option value="28">28 mm</option><option value="32">32 mm</option>
+                <option value="9">9 mm</option><option value="12">12 mm</option><option value="16">16 mm</option><option value="19">19 mm</option><option value="22">22 mm</option><option value="25" selected>25 mm</option><option value="50">50 mm</option>
             </select>
         </div>
+        <div class="input-group"><label>屈折角 θ (deg)</label><input type="number" id="angle" value="70" step="0.1" oninput="draw()"></div>
+        <div class="input-group"><label>探触子位置 Y0 (mm)</label><input type="number" id="probePos" value="75" oninput="draw()"></div>
+        <div class="input-group"><label>ビーム路程 W (mm)</label><input type="number" id="beamPath" value="80" step="0.1" oninput="draw()" style="background:#222; color:var(--accent-color);"></div>
         
-        <div class="input-group">
-            <label>開先形状 (Joint Shape)</label>
-            <select id="jointShape" onchange="draw()">
-                <option value="single_bevel">レ形開先 (片側垂直)</option>
-                <option value="v_groove">V形開先 (両側斜め)</option>
-            </select>
+        <div style="display: flex; gap: 8px; margin: 10px 0;">
+            <input type="file" id="fileInput" accept="image/*" style="display:none">
+            <button class="btn-photo btn-machine" onclick="mode='machine';fileInput.click()">🎯探傷器</button>
+            <button class="btn-photo btn-doc" onclick="mode='doc';fileInput.click()">📄検査表</button>
         </div>
+        <img id="imgPreview">
+        <div id="ocrLog" style="font-size:0.7rem; color:#888; white-space:pre-wrap"></div>
 
-        <div class="input-group">
-            <label>屈折角 θ (deg)</label>
-            <input type="number" id="angle" value="69.0" step="0.1" oninput="draw()">
-        </div>
-        <div class="input-group">
-            <label>探触子位置 Y0 (mm)</label>
-            <input type="number" id="probePos" value="30.0" step="0.5" oninput="draw()">
-        </div>
-        <div class="input-group">
-            <label>ビーム路程 W (mm)</label>
-            <input type="number" id="beamPath" value="18.1" step="0.5" oninput="draw()" style="font-weight:bold; color:#00ff41;">
-        </div>
+        <div class="input-group"><label>深さ d (mm)</label><input type="number" id="depth" readonly></div>
+        <div class="input-group"><label>水平距離 y (mm)</label><input type="number" id="distance" readonly></div>
         
-        <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
-        
-        <div class="input-group">
-            <input type="file" id="fileInput" accept="image/*" style="display: none;">
-            <button class="btn-photo" onclick="startOCR('machine')">🎯 探傷器をスキャン</button>
-            <button class="btn-photo btn-doc" onclick="startOCR('doc')">📄 検査表をスキャン</button>
-            <img id="imgPreview" alt="プレビュー">
-            <div id="ocrResult" style="font-size: 0.7rem; color: #aaa; margin-top: 5px; white-space: pre-wrap;"></div>
-        </div>
-
-        <div class="input-group">
-            <label>計算結果 (d:深さ / y:水平距離)</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="depth" readonly style="flex:1;">
-                <input type="text" id="distance" readonly style="flex:1;">
-            </div>
-        </div>
-        <div style="margin-top: auto; text-align: center; font-size: 0.7rem; color: #666;">
-            製作者: 比嘉 義朝 (設計部主任)
-        </div>
+        <div style="text-align:center; font-size:0.6rem; color:#555; margin-top:auto;">MIYAMASA KOGYO DESIGN DEPT.</div>
     </div>
 </div>
 
 <script>
+    let mode = 'machine';
     const canvas = document.getElementById('utCanvas');
     const ctx = canvas.getContext('2d');
     const fileInput = document.getElementById('fileInput');
-    let ocrMode = 'machine';
 
-    function startOCR(mode) { ocrMode = mode; fileInput.click(); }
-
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
-        const loading = document.getElementById('ocrLoading');
-        const stepDisplay = document.getElementById('ocrStep');
-        loading.style.display = 'block';
-        stepDisplay.innerText = "画像を処理しています...";
+        if(!file) return;
+        
+        document.getElementById('ocrLoading').style.display = 'block';
+        document.getElementById('ocrLog').innerText = "前処理中...";
 
         const reader = new FileReader();
         reader.onload = (event) => {
             const img = new Image();
             img.onload = async () => {
-                const MAX_SIZE = 600;
-                let w = img.width; let h = img.height;
-                if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; }
-                const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
-                const tCtx = tmp.getContext('2d');
-                tCtx.filter = 'grayscale(100%)'; 
-                tCtx.drawImage(img, 0, 0, w, h);
-                const dataUrl = tmp.toDataURL('image/jpeg', 0.8);
+                // --- 画像処理 (現場特化型) ---
+                const workCanvas = document.createElement('canvas');
+                const workCtx = workCanvas.getContext('2d');
+                workCanvas.width = 600; workCanvas.height = img.height * (600 / img.width);
+                workCtx.filter = 'contrast(200%) grayscale(100%) brightness(120%)';
+                workCtx.drawImage(img, 0, 0, workCanvas.width, workCanvas.height);
+                
+                const dataUrl = workCanvas.toDataURL('image/jpeg');
                 document.getElementById('imgPreview').src = dataUrl;
                 document.getElementById('imgPreview').style.display = 'block';
 
-                stepDisplay.innerText = "文字を抽出中...";
                 try {
-                    const worker = await Tesseract.createWorker('eng', 1, { 
-                        logger: m => { if (m.status === 'recognizing text') document.getElementById('ocrProgress').innerText = Math.round(m.progress * 100) + '%'; } 
+                    const worker = await Tesseract.createWorker({
+                        logger: m => { if(m.status === 'recognizing text') document.getElementById('ocrProgress').innerText = Math.round(m.progress*100)+'%'; }
                     });
-                    
-                    // v23のキモ：AIに「これは1行だけのテキストだ」と教え込む (PSM: 7)
-                    await worker.setParameters({
-                        tessedit_char_whitelist: '0123456789. ',
-                        tessedit_pageseg_mode: '7' 
-                    });
+                    await worker.loadLanguage('eng');
+                    await worker.initialize('eng');
+                    await worker.setParameters({ tessedit_char_whitelist: '0123456789. ' });
 
-                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 30000));
-                    const recognizePromise = worker.recognize(dataUrl).then(res => { worker.terminate(); return res.data.text; });
+                    const { data: { text } } = await worker.recognize(dataUrl);
+                    await worker.terminate();
 
-                    const text = await Promise.race([recognizePromise, timeoutPromise]);
-                    document.getElementById('ocrResult').innerText = "AI生データ: " + text;
-                    
-                    const nums = text.match(/\d+(?:\.\d+)?/g);
-                    if (nums && nums.length > 0) {
-                        const clean = nums.map(Number).filter(n => n > 1 && n < 500);
-                        if (clean.length > 0) {
-                            if (ocrMode === 'machine') { document.getElementById('beamPath').value = Math.max(...clean); }
-                            else {
-                                const decimals = clean.filter(n => n % 1 !== 0);
-                                const integers = clean.filter(n => n % 1 === 0);
-                                if (decimals.length > 0) document.getElementById('beamPath').value = Math.max(...decimals);
-                                if (integers.length > 0) document.getElementById('probePos').value = Math.max(...integers);
+                    const nums = text.match(/\d+(\.\d+)?/g);
+                    if(nums && nums.length > 0) {
+                        const parsed = nums.map(Number).filter(n => n > 5 && n < 500);
+                        if(mode === 'machine') {
+                            document.getElementById('beamPath').value = Math.max(...parsed);
+                        } else {
+                            // 検査表ロジック: 屈折角(60-80)を基準に前後を拾う
+                            let thIdx = parsed.findIndex(n => n >= 60 && n <= 80);
+                            if(thIdx !== -1) {
+                                if(parsed[thIdx-2]) document.getElementById('thickness').value = Math.round(parsed[thIdx-2]);
+                                document.getElementById('angle').value = parsed[thIdx];
+                                if(parsed[thIdx+2]) document.getElementById('probePos').value = parsed[thIdx+2];
+                                if(parsed[thIdx+3]) document.getElementById('beamPath').value = parsed[thIdx+3];
                             }
-                            draw();
-                        } else { alert("有効な数字が見つかりませんでした。"); }
-                    } else { alert("数字を認識できません。表の枠線を入れずに、数字だけをアップで撮ってください！"); }
-                } catch (err) { alert("タイムアウトしました。"); }
-                loading.style.display = 'none';
+                        }
+                        draw();
+                    } else { alert("数字が検出できません。もっとアップで撮ってください。"); }
+                } catch(err) { alert("OCRエラー"); }
+                document.getElementById('ocrLoading').style.display = 'none';
             };
             img.src = event.target.result;
         };
@@ -166,63 +130,47 @@
     });
 
     function draw() {
-        const T = parseFloat(document.getElementById('thickness').value) || 25;
-        const jointShape = document.getElementById('jointShape').value;
-        const theta = (parseFloat(document.getElementById('angle').value) || 70) * Math.PI / 180;
-        const Y0 = parseFloat(document.getElementById('probePos').value) || 0;
-        const W = parseFloat(document.getElementById('beamPath').value) || 0;
-        
+        const T = parseFloat(document.getElementById('thickness').value);
+        const theta = (parseFloat(document.getElementById('angle').value)) * (Math.PI / 180);
+        const Y0 = parseFloat(document.getElementById('probePos').value);
+        const W = parseFloat(document.getElementById('beamPath').value);
+
         const y = W * Math.sin(theta);
         const d_raw = W * Math.cos(theta);
+        
+        // 物理計算 (裏当て金 9x25)
         const x_at_T = Y0 - T * Math.tan(theta);
-        const isBacking = (x_at_T >= -12.5 && x_at_T <= 12.5);
-        const eff_T = isBacking ? T + 9 : T;
-        
-        let d, skip;
-        if (d_raw <= eff_T) { d = d_raw; skip = isBacking && d_raw > T ? "裏当て金 透過" : "0.5 SKIP (直射)"; }
-        else { d = eff_T - (d_raw - eff_T); skip = "1.0 SKIP (反射)"; }
-        
-        document.getElementById('depth').value = d.toFixed(1);
-        document.getElementById('distance').value = y.toFixed(1);
-        document.getElementById('statusOverlay').innerText = skip;
-        
-        ctx.clearRect(0,0,800,500);
-        const s = Math.min(6, 220/T); const weldX = 250; const startY = 250 - (T*s)/2;
-        
-        ctx.fillStyle = "#333"; ctx.strokeStyle = "#888"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.rect(weldX + 7*s/2, startY, 1000, T*s); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.rect(weldX - 7*s/2 - 1000, startY, 1000, T*s); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#222"; ctx.strokeStyle = "#666";
-        ctx.beginPath(); ctx.rect(weldX - 12.5*s, startY + T*s, 25*s, 9*s); ctx.fill(); ctx.stroke();
-        
-        // 開先の描画処理
-        const grooveAngle = 35 * (Math.PI / 180);
-        const grooveTopWidth = (T * s) * Math.tan(grooveAngle);
-        ctx.fillStyle = "rgba(80, 80, 80, 0.8)";
-        ctx.beginPath();
-        ctx.moveTo(weldX - 7*s/2, startY + T*s);
-        ctx.lineTo(weldX + 7*s/2, startY + T*s);
-        if (jointShape === 'single_bevel') {
-            ctx.lineTo(weldX + 7*s/2 + grooveTopWidth, startY);
-            ctx.lineTo(weldX - 7*s/2, startY);
-        } else {
-            ctx.lineTo(weldX + 7*s/2 + grooveTopWidth, startY);
-            ctx.lineTo(weldX - 7*s/2 - grooveTopWidth, startY);
-        }
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
+        const isBacking = (Math.abs(x_at_T) < 12.5);
+        const effT = isBacking ? T + 9 : T;
 
-        const pX = weldX + Y0*s;
-        ctx.fillStyle = "#ccc"; ctx.fillRect(pX-20, startY-25, 40, 25);
-        ctx.fillStyle = "#ff3e3e"; ctx.beginPath(); ctx.moveTo(pX, startY); ctx.lineTo(pX-5, startY-8); ctx.lineTo(pX+5, startY-8); ctx.fill();
-        ctx.strokeStyle = "#00ff41"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pX, startY);
-        let fX, fY;
-        if (d_raw <= eff_T) { fX = pX - y*s; fY = startY + d_raw*s; ctx.lineTo(fX, fY); }
-        else { 
-            const rX = pX - eff_T * Math.tan(theta) * s; const rY = startY + eff_T*s;
-            ctx.lineTo(rX, rY); fX = rX - (y - eff_T*Math.tan(theta))*s; fY = rY - (d_raw - eff_T)*s; ctx.lineTo(fX, fY);
+        let d_disp = (d_raw <= effT) ? d_raw : (effT - (d_raw - effT));
+        
+        document.getElementById('depth').value = d_disp.toFixed(1);
+        document.getElementById('distance').value = y.toFixed(1);
+
+        // 描画
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const sc = 5.0; const ox = 250; const oy = 250 - (T*sc/2);
+        
+        ctx.fillStyle = "#333"; ctx.fillRect(ox - 500, oy, 500 - 3.5*sc, T*sc); // 板左
+        ctx.fillRect(ox + 3.5*sc, oy, 500, T*sc); // 板右
+        ctx.fillStyle = "#222"; ctx.fillRect(ox - 12.5*sc, oy + T*sc, 25*sc, 9*sc); // 裏当て金
+        
+        const px = ox + Y0*sc;
+        ctx.fillStyle = "#ccc"; ctx.fillRect(px-20, oy-25, 40, 25); // 探触子
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.moveTo(px, oy); ctx.lineTo(px-5, oy-8); ctx.lineTo(px+5, oy-8); ctx.fill(); // 入射点▽
+
+        ctx.strokeStyle = "#00ff41"; ctx.setLineDash(d_raw > effT ? [5, 5] : []);
+        ctx.beginPath(); ctx.moveTo(px, oy);
+        if(d_raw <= effT) {
+            ctx.lineTo(px - y*sc, oy + d_raw*sc);
+        } else {
+            const rx = px - effT * Math.tan(theta) * sc;
+            ctx.lineTo(rx, oy + effT*sc); ctx.lineTo(px - y*sc, oy + d_disp*sc);
         }
-        ctx.stroke(); ctx.fillStyle = "#ff3e3e"; ctx.beginPath(); ctx.arc(fX, fY, 5, 0, 7); ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(px - y*sc, oy + d_disp*sc, 6, 0, 7); ctx.fill(); // きず
     }
     draw();
 </script>
