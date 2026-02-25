@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Manual Edition v36)</title>
+    <title>UT-Visualizer Pro (Manual Edition v37)</title>
     <style>
         :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow-x: hidden; }
         header { padding: 12px 20px; border-bottom: 2px solid var(--accent-color); background-color: #000; display: flex; justify-content: space-between; align-items: center; }
-        .main-container { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
+        .main-container { display: flex; flex: 1; overflow: hidden; flex-direction: row; width: 100%; }
         .canvas-area { flex: 2; position: relative; background-color: #111; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         canvas { background-color: transparent; max-width: 100%; height: auto; }
         #statusOverlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-color); font-weight: bold; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); background-color: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px dashed var(--accent-color); }
         #judgeOverlay { position: absolute; top: 20px; right: 20px; font-weight: bold; font-size: 1.2rem; background-color: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid #555; border-radius: 5px; text-align: right; }
-        .input-panel { flex: 1; min-width: 380px; max-width: 480px; background-color: var(--panel-color); padding: 15px 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .input-panel { flex: 1; min-width: 380px; max-width: 480px; background-color: var(--panel-color); padding: 15px 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
         .input-group { margin-bottom: 2px; }
-        .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; white-space: nowrap; }
         .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 6px 8px; font-size: 0.95rem; box-sizing: border-box; font-family: 'Courier New', monospace; }
         .input-group input:focus, .input-group select:focus { border-color: var(--accent-color); outline: none; }
         input[readonly] { color: #888; border-color: #222; }
@@ -27,7 +27,7 @@
         .record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .btn { background: #333; color: #fff; border: 1px solid var(--accent-color); padding: 5px 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn:hover { background: var(--accent-color); color: #000; }
-        .btn-record { background: rgba(0, 255, 65, 0.2); width: 100%; padding: 8px; font-size: 1rem; margin-top: 5px; }
+        .btn-record { background: rgba(0, 255, 65, 0.2); width: 100%; padding: 12px; font-size: 1rem; margin-top: 5px; border-radius: 4px; }
         .btn-reset { border-color: var(--fail-color); color: var(--fail-color); padding: 4px 8px; font-size: 0.8rem; }
         .btn-reset:hover { background: var(--fail-color); color: #fff; }
         .record-list { max-height: 150px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 0.85rem; }
@@ -36,16 +36,26 @@
         .record-item-top { display: flex; justify-content: space-between; color: var(--accent-color); font-weight: bold; margin-bottom: 2px; }
         .record-item-bottom { display: flex; justify-content: space-between; color: #aaa; font-size: 0.75rem; }
         .sum-result { margin-top: 8px; padding: 10px; background: #000; border: 2px solid #555; text-align: center; font-size: 1.05rem; font-weight: bold; line-height: 1.4; }
-        .flex-row { display: flex; gap: 8px; }
-        .flex-1 { flex: 1; }
+        .flex-row { display: flex; gap: 6px; }
+        .flex-1 { flex: 1; min-width: 0; } /* min-width:0 prevents flex items from overflowing */
         
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .canvas-area { min-height: 250px; } .input-panel { max-width: none; border-left: none; border-top: 2px solid var(--accent-color); } }
+        /* スマホ用レスポンシブ設計 (幅768px以下で適用) */
+        @media (max-width: 768px) { 
+            .main-container { flex-direction: column; } 
+            .canvas-area { min-height: 250px; width: 100%; } 
+            .input-panel { min-width: 100%; width: 100%; max-width: none; border-left: none; border-top: 2px solid var(--accent-color); padding: 10px 15px; } 
+            .input-group label { font-size: 0.7rem; }
+            .input-group input, .input-group select { font-size: 1rem; padding: 8px 4px; } /* スマホでタップしやすいように調整 */
+            .flex-row { gap: 4px; }
+            #judgeOverlay { font-size: 1rem; padding: 6px 12px; }
+            #statusOverlay { font-size: 1rem; bottom: 10px; }
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v36</div>
+    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v37</div>
     <div style="font-size: 0.8rem; opacity: 0.7;">製作者 比嘉</div>
 </header>
 
@@ -54,7 +64,7 @@
         <canvas id="utCanvas" width="800" height="400"></canvas>
         <div id="statusOverlay">READY</div>
         <div id="judgeOverlay" style="color:#aaa;">
-            <div style="font-size:0.8rem; color:#fff;">【単一キズ評価】</div>
+            <div style="font-size:0.75rem; color:#fff;">【単一キズ評価】</div>
             <div id="singleJudgeText">待機中</div>
         </div>
     </div>
@@ -90,11 +100,11 @@
                     <option value="x_groove">X形 (両面)</option>
                 </select>
             </div>
-            <div class="input-group flex-1" style="flex:0.5;">
+            <div class="input-group flex-1" style="flex:0.6;">
                 <label>ギャップ</label>
                 <input type="number" id="rootGap" value="7.0" step="1.0">
             </div>
-            <div class="input-group flex-1" style="flex:0.5;">
+            <div class="input-group flex-1" style="flex:0.6;">
                 <label>屈折角 θ</label>
                 <input type="number" id="angle" value="70.0" step="0.1">
             </div>
@@ -125,7 +135,7 @@
         </div>
 
         <div class="flaw-estimation">
-            <label>🤖 欠陥内容の推定 (AI)</label>
+            <label>🤖 欠陥推定 (AI)</label>
             <div id="flawType">-</div>
         </div>
         
@@ -214,7 +224,6 @@
         let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
         let merged = [];
         
-        // 結合処理（Noの記録付き）
         for (let f of sorted) {
             if (f.length < limits.ignore) continue;
             let start = f.x; let end = f.x + f.length; let rScore = regionScores[f.region];
@@ -230,7 +239,7 @@
                     last.end = Math.max(last.end, end);
                     last.maxL = Math.max(last.maxL, f.length);
                     last.maxRegScore = Math.max(last.maxRegScore, rScore);
-                    last.nos.push(f.no); // 同一欠陥としてNoを追加
+                    last.nos.push(f.no);
                 } else {
                     merged.push({ start: start, end: end, maxL: f.length, maxRegScore: rScore, nos: [f.no] });
                 }
@@ -243,14 +252,12 @@
             return;
         }
 
-        // 同一欠陥のテキスト生成
         let mergeTexts = [];
         merged.forEach(m => {
             if (m.nos.length > 1) mergeTexts.push(`No.${m.nos.join('と')}は同一欠陥`);
         });
         let mergeStr = mergeTexts.length > 0 ? `<div style="color:#ff9900; font-size:0.8rem; margin-top:4px;">※${mergeTexts.join(', ')}</div>` : '';
 
-        // 300mm区間探索
         let windowSize = Math.min(wLen, 300);
         let maxSum = 0; let worstRegScore = 0;
 
@@ -402,7 +409,7 @@
             
             document.getElementById('depth').value = d_disp.toFixed(1);
             document.getElementById('k_value').value = K_calc.toFixed(1);
-            statusOverlay.innerText = isRef ? "1.0 SKIP (反射)" : (isBacking && d_calc > T ? "0.5 SKIP (裏当て金透過)" : "0.5 SKIP (直射)");
+            statusOverlay.innerText = isRef ? "1.0 SKIP (反射)" : (isBacking && d_calc > T ? "0.5 SKIP (裏金透過)" : "0.5 SKIP (直射)");
             
             const est = estimateFlawType(T, G, d_disp, K_calc, shape, isBacking);
             flawTypeDisplay.innerText = est;
@@ -424,17 +431,16 @@
     function render(T, G, R, eff_T, theta, W, d, isRef, shape, Y0, isDouble, isBacking) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // オートフォーカス（動的スケール）の計算
         let max_x_dist = Math.max(20, Math.abs(Y0));
         if (W > 0) {
             max_x_dist = Math.max(max_x_dist, Math.abs(Y0 - W * Math.sin(theta)));
             if (isRef) max_x_dist = Math.max(max_x_dist, Math.abs(Y0 - eff_T * Math.tan(theta)));
         }
-        let scale = Math.min(8.0, 200 / (T + R*2 + 15)); // 縦方向のフィット
-        scale = Math.min(scale, (canvas.width / 2 - 40) / max_x_dist); // 横方向のオートフォーカス
+        let scale = Math.min(8.0, 200 / (T + R*2 + 15));
+        scale = Math.min(scale, (canvas.width / 2 - 40) / max_x_dist);
         
         const startY = (canvas.height / 2) - (T * scale / 2);
-        const weldX = canvas.width / 2; // 常に中心
+        const weldX = canvas.width / 2;
         const gap = G * scale;
         const gA = 35 * Math.PI / 180;
         const T_px = T * scale;
@@ -443,7 +449,6 @@
 
         ctx.fillStyle = "#333"; ctx.strokeStyle = "#888"; ctx.lineWidth = 2;
         
-        // --- 鉄骨描画 ---
         ctx.beginPath();
         if (shape === 'single_bevel' || shape === 'k_groove') {
             ctx.rect(weldX - gap/2 - 1000, startY, 1000, T_px);
@@ -468,7 +473,6 @@
         }
         ctx.fill(); ctx.stroke();
 
-        // --- 余盛り描画 ---
         if (R > 0) {
             ctx.fillStyle = "#444"; ctx.strokeStyle = "#888";
             let leftEdge = weldX - gap/2; let rightEdge = weldX + gap/2;
@@ -476,12 +480,10 @@
             else if(shape==='x_groove') { leftEdge -= gW_half; rightEdge += gW_half; }
             else { leftEdge -= gW; rightEdge += gW; }
             
-            // 表面余盛り
             ctx.beginPath(); ctx.moveTo(leftEdge, startY);
             ctx.quadraticCurveTo((leftEdge+rightEdge)/2, startY - R * scale * 2, rightEdge, startY);
             ctx.fill(); ctx.stroke();
             
-            // 裏波・裏面余盛り
             if (isDouble || (shape==='v_groove' && !isBacking)) {
                 ctx.beginPath(); ctx.moveTo(leftEdge, startY + T_px);
                 ctx.quadraticCurveTo((leftEdge+rightEdge)/2, startY + T_px + R * scale * 2, rightEdge, startY + T_px);
@@ -489,7 +491,6 @@
             }
         }
 
-        // --- 裏当て金 ---
         if (!isDouble) {
             ctx.fillStyle = "#222"; ctx.fillRect(weldX - 12.5 * scale, startY + T_px, 25 * scale, 9 * scale);
             ctx.strokeRect(weldX - 12.5 * scale, startY + T_px, 25 * scale, 9 * scale);
