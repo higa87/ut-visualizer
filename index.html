@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Manual Edition v37)</title>
+    <title>UT-Visualizer Pro (Manual Edition v42)</title>
     <style>
         :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow-x: hidden; }
@@ -12,7 +12,7 @@
         .canvas-area { flex: 2; position: relative; background-color: #111; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         canvas { background-color: transparent; max-width: 100%; height: auto; }
         #statusOverlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-color); font-weight: bold; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); background-color: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px dashed var(--accent-color); }
-        #judgeOverlay { position: absolute; top: 20px; right: 20px; font-weight: bold; font-size: 1.2rem; background-color: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid #555; border-radius: 5px; text-align: right; }
+        #judgeOverlay { position: absolute; top: 20px; right: 20px; font-weight: bold; font-size: 1.2rem; background-color: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid #555; border-radius: 5px; text-align: right; z-index: 10; }
         .input-panel { flex: 1; min-width: 380px; max-width: 480px; background-color: var(--panel-color); padding: 15px 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
         .input-group { margin-bottom: 2px; }
         .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; white-space: nowrap; }
@@ -30,32 +30,37 @@
         .btn-record { background: rgba(0, 255, 65, 0.2); width: 100%; padding: 12px; font-size: 1rem; margin-top: 5px; border-radius: 4px; }
         .btn-reset { border-color: var(--fail-color); color: var(--fail-color); padding: 4px 8px; font-size: 0.8rem; }
         .btn-reset:hover { background: var(--fail-color); color: #fff; }
-        .record-list { max-height: 150px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 0.85rem; }
-        .record-item { display: flex; flex-direction: column; padding: 6px; border-bottom: 1px solid #333; }
+        .record-list { max-height: 160px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 0.85rem; }
+        
+        .record-item { display: flex; flex-direction: column; padding: 8px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.2s; }
+        .record-item:hover { background: #222; }
         .record-item:last-child { border-bottom: none; }
-        .record-item-top { display: flex; justify-content: space-between; color: var(--accent-color); font-weight: bold; margin-bottom: 2px; }
+        .record-item-top { display: flex; justify-content: space-between; align-items: center; color: var(--accent-color); font-weight: bold; margin-bottom: 4px; }
         .record-item-bottom { display: flex; justify-content: space-between; color: #aaa; font-size: 0.75rem; }
+        .btn-delete { background: transparent; border: 1px solid #666; color: #ff3e3e; border-radius: 3px; padding: 2px 10px; font-weight: bold; font-size: 0.9rem; margin-left: 10px; cursor: pointer; }
+        .btn-delete:hover { background: #ff3e3e; color: #fff; border-color: #ff3e3e; }
+        
         .sum-result { margin-top: 8px; padding: 10px; background: #000; border: 2px solid #555; text-align: center; font-size: 1.05rem; font-weight: bold; line-height: 1.4; }
         .flex-row { display: flex; gap: 6px; }
-        .flex-1 { flex: 1; min-width: 0; } /* min-width:0 prevents flex items from overflowing */
+        .flex-1 { flex: 1; min-width: 0; }
         
-        /* スマホ用レスポンシブ設計 (幅768px以下で適用) */
         @media (max-width: 768px) { 
             .main-container { flex-direction: column; } 
             .canvas-area { min-height: 250px; width: 100%; } 
             .input-panel { min-width: 100%; width: 100%; max-width: none; border-left: none; border-top: 2px solid var(--accent-color); padding: 10px 15px; } 
             .input-group label { font-size: 0.7rem; }
-            .input-group input, .input-group select { font-size: 1rem; padding: 8px 4px; } /* スマホでタップしやすいように調整 */
+            .input-group input, .input-group select { font-size: 1rem; padding: 8px 4px; }
             .flex-row { gap: 4px; }
             #judgeOverlay { font-size: 1rem; padding: 6px 12px; }
             #statusOverlay { font-size: 1rem; bottom: 10px; }
+            .record-item { padding: 10px 6px; }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v37</div>
+    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v42</div>
     <div style="font-size: 0.8rem; opacity: 0.7;">製作者 比嘉</div>
 </header>
 
@@ -75,9 +80,11 @@
                 <label>板厚 T (mm)</label>
                 <select id="thickness">
                     <option value="9">9</option><option value="12">12</option>
-                    <option value="16">16</option><option value="19" selected>19</option>
+                    <option value="16">16</option><option value="19">19</option>
                     <option value="22">22</option><option value="25">25</option>
-                    <option value="32">32</option><option value="50">50</option>
+                    <option value="28" selected>28</option><option value="32">32</option>
+                    <option value="36">36</option><option value="40">40</option>
+                    <option value="45">45</option><option value="50">50</option>
                 </select>
             </div>
             <div class="input-group flex-1">
@@ -93,24 +100,52 @@
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>開先形状</label>
-                <select id="jointShape">
+                <select id="jointShape" onchange="onJointShapeChange()">
                     <option value="single_bevel" selected>レ形 (片側)</option>
                     <option value="v_groove">V形 (両側)</option>
                     <option value="k_groove">K形 (両面)</option>
                     <option value="x_groove">X形 (両面)</option>
                 </select>
             </div>
-            <div class="input-group flex-1" style="flex:0.6;">
-                <label>ギャップ</label>
+            <div class="input-group flex-1">
+                <label id="topAngleLabel">上側角度</label>
+                <select id="topAngle">
+                    <option value="35" selected>35°</option>
+                    <option value="45">45°</option>
+                    <option value="60">60°</option>
+                </select>
+            </div>
+            <div class="input-group flex-1" id="botAngleContainer" style="display:none;">
+                <label>下側角度</label>
+                <select id="bottomAngle">
+                    <option value="35">35°</option>
+                    <option value="45">45°</option>
+                    <option value="60">60°</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex-row" id="dDimensions" style="display:none; background:#222; padding:4px 8px; border-radius:4px; border:1px solid #444;">
+            <div class="input-group flex-1"><label>D1 (上深さ)</label><input type="number" id="dimD1" value="13" step="1"></div>
+            <div class="input-group flex-1"><label>D3 (ﾙｰﾄ面)</label><input type="number" id="dimD3" value="2" step="1"></div>
+            <div class="input-group flex-1"><label>D2 (下深さ)</label><input type="number" id="dimD2" value="13" step="1"></div>
+        </div>
+        <div id="dimWarning" style="color:#ff3e3e; font-size:0.75rem; text-align:center; display:none; font-weight:bold; margin-top:2px;">
+            ⚠️ D1 + D3 + D2 の合計が板厚Tと一致しません！
+        </div>
+
+        <div style="border-top: 1px solid #444; margin: 4px 0;"></div>
+
+        <div class="flex-row">
+            <div class="input-group flex-1">
+                <label>ギャップ G</label>
                 <input type="number" id="rootGap" value="7.0" step="1.0">
             </div>
-            <div class="input-group flex-1" style="flex:0.6;">
+            <div class="input-group flex-1">
                 <label>屈折角 θ</label>
                 <input type="number" id="angle" value="70.0" step="0.1">
             </div>
         </div>
-
-        <div style="border-top: 1px solid #444; margin: 4px 0;"></div>
 
         <div class="flex-row">
             <div class="input-group flex-1">
@@ -135,13 +170,13 @@
         </div>
 
         <div class="flaw-estimation">
-            <label>🤖 欠陥推定 (AI)</label>
+            <label>🤖 欠陥推定 (AI / 評価外考慮)</label>
             <div id="flawType">-</div>
         </div>
         
         <div style="border-top: 1px solid #444; margin: 4px 0;"></div>
 
-        <div style="font-size: 0.85rem; color: #ff9900; font-weight: bold; margin-bottom: 2px;">【 記録＆自動総和判定 】</div>
+        <div style="font-size: 0.85rem; color: #ff9900; font-weight: bold; margin-bottom: 2px;">【 記録＆自動総合判定 】</div>
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>X位置 (mm)</label>
@@ -164,15 +199,15 @@
 
         <div class="record-section">
             <div class="record-header">
-                <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem;">📋 野帳データ (No連番)</span>
+                <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem;">📋 野帳データ (タップで復元)</span>
                 <button class="btn btn-reset" onclick="resetRecords()">全消去</button>
             </div>
             <div class="record-list" id="recordList">
                 <div style="color: #666; text-align: center; padding: 10px;">記録がありません</div>
             </div>
             <div class="sum-result" id="sumResult">
-                <div style="font-size: 0.8rem; color: #aaa;">総和判定 (境界値: - mm)</div>
-                <span style="color: #fff;">総和: 0.0 mm</span>
+                <div style="font-size: 0.8rem; color: #aaa;">総合判定 (単独＋総和)</div>
+                <span style="color: #fff;">記録なし</span>
             </div>
         </div>
     </div>
@@ -191,9 +226,47 @@
     const regionScores = { "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5 };
     const regionNames = ["", "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ"];
 
+    function onJointShapeChange() {
+        const shape = document.getElementById('jointShape').value;
+        if (shape === 'k_groove') {
+            document.getElementById('topAngle').value = '60';
+            document.getElementById('bottomAngle').value = '60';
+            document.getElementById('dimD1').value = '13';
+            document.getElementById('dimD3').value = '2';
+            document.getElementById('dimD2').value = '13';
+            document.getElementById('rootGap').value = '0.0';
+        } else if (shape === 'single_bevel') {
+            document.getElementById('topAngle').value = '35';
+            document.getElementById('rootGap').value = '7.0';
+        }
+        toggleGrooveInputs();
+    }
+
+    function toggleGrooveInputs() {
+        const shape = document.getElementById('jointShape').value;
+        const botAngleContainer = document.getElementById('botAngleContainer');
+        const topAngleLabel = document.getElementById('topAngleLabel');
+        const dDims = document.getElementById('dDimensions');
+        
+        if (shape === 'k_groove' || shape === 'x_groove') {
+            botAngleContainer.style.display = 'block';
+            dDims.style.display = 'flex';
+            topAngleLabel.innerText = "上側角度";
+        } else {
+            botAngleContainer.style.display = 'none';
+            dDims.style.display = 'none';
+            topAngleLabel.innerText = "開先角度";
+            document.getElementById('dimWarning').style.display = 'none';
+        }
+        draw();
+    }
+
     const inputs = document.querySelectorAll('#inputs input, #inputs select');
     inputs.forEach(input => {
-        ['input', 'change', 'keyup'].forEach(ev => input.addEventListener(ev, draw));
+        ['input', 'change', 'keyup'].forEach(ev => input.addEventListener(ev, () => {
+            if(input.id === 'jointShape') return;
+            draw();
+        }));
     });
 
     function getLimits(t) {
@@ -215,7 +288,7 @@
     function updateSumEvaluation(t, wLen) {
         const sumBox = document.getElementById('sumResult');
         if (recordedFlaws.length === 0) {
-            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総和判定</div><span style="color: #fff;">記録なし</span>`;
+            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総合判定 (単独＋総和)</div><span style="color: #fff;">記録なし</span>`;
             sumBox.style.borderColor = "#555";
             return;
         }
@@ -223,11 +296,19 @@
         const limits = getLimits(t);
         let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
         let merged = [];
+        let hasSingleReject = false;
         
         for (let f of sorted) {
-            if (f.length < limits.ignore) continue;
-            let start = f.x; let end = f.x + f.length; let rScore = regionScores[f.region];
+            if (f.isExcluded) continue;
             
+            // 単独キズの合否チェック (評価対象のキズのみ)
+            let singleEval = evaluateSingle(f.region, f.length, limits);
+            if (!singleEval.isPass) {
+                hasSingleReject = true;
+            }
+
+            // 同一欠陥の結合処理
+            let start = f.x; let end = f.x + f.length; let rScore = regionScores[f.region];
             if (merged.length === 0) {
                 merged.push({ start: start, end: end, maxL: f.length, maxRegScore: rScore, nos: [f.no] });
             } else {
@@ -247,17 +328,18 @@
         }
 
         if (merged.length === 0) {
-            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総和判定</div><span style="color: #00ff41;">全て足切り(評価外)のため合格</span>`;
+            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総合判定 (単独＋総和)</div><span style="color: #00ff41;">有効な欠陥なし (合格)</span>`;
             sumBox.style.borderColor = "#00ff41";
             return;
         }
 
         let mergeTexts = [];
         merged.forEach(m => {
-            if (m.nos.length > 1) mergeTexts.push(`No.${m.nos.join('と')}は同一欠陥`);
+            if (m.nos.length > 1) mergeTexts.push(`No.${m.nos.join('と')}は同一`);
         });
         let mergeStr = mergeTexts.length > 0 ? `<div style="color:#ff9900; font-size:0.8rem; margin-top:4px;">※${mergeTexts.join(', ')}</div>` : '';
 
+        // 最悪300mm区間の探索
         let windowSize = Math.min(wLen, 300);
         let maxSum = 0; let worstRegScore = 0;
 
@@ -283,14 +365,24 @@
         else if (worstRegScore === 3 || worstRegScore === 4) { sumLimit = limits.L; limitName = "L"; }
         else if (worstRegScore === 5) { sumLimit = limits.ML; limitName = "ML"; }
 
-        const isPass = (worstRegScore === 1) || (maxSum < sumLimit);
-        const color = isPass ? "#00ff41" : "#ff3e3e";
-        const judgeStr = isPass ? "合格" : "不合格";
+        const isSumPass = (worstRegScore === 1) || (maxSum < sumLimit);
+        const isFinalPass = !hasSingleReject && isSumPass;
+        
+        let judgeStr = "";
+        if (isFinalPass) {
+            judgeStr = "合 格";
+        } else {
+            if (hasSingleReject && !isSumPass) judgeStr = "不合格 (単独・総和NG)";
+            else if (hasSingleReject) judgeStr = "不合格 (単独キズNG)";
+            else judgeStr = "不合格 (総和NG)";
+        }
+
+        const color = isFinalPass ? "#00ff41" : "#ff3e3e";
         
         sumBox.style.borderColor = color;
         sumBox.innerHTML = `
             <div style="font-size: 0.75rem; color: #aaa;">最悪${windowSize}mm区間 (領域: ${maxRegionStr} / 限界 ${limitName}=${sumLimit}mm)</div>
-            <span style="color: ${color};">評価長さ和: ${maxSum.toFixed(1)} mm <br><b>【 ${judgeStr} 】</b></span>
+            <span style="color: ${color};">評価長さ和: ${maxSum.toFixed(1)} mm <br><b style="font-size: 1.25rem;">【 ${judgeStr} 】</b></span>
             ${mergeStr}
         `;
     }
@@ -307,13 +399,36 @@
         const length = parseFloat(document.getElementById('flawLength').value);
         const t = parseFloat(document.getElementById('thickness').value);
         const wLen = parseFloat(document.getElementById('weldLength').value);
+        const estText = document.getElementById('flawType').innerText;
+        
+        const isExcluded = estText.includes("評価外") || estText.includes("非欠陥");
         
         flawCounter++;
-        recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length });
+        recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length, isExcluded: isExcluded });
+        
         document.getElementById('flawX').value = (x + length + 10).toFixed(1);
         
         renderRecordList();
         updateSumEvaluation(t, wLen);
+    }
+
+    function deleteRecord(no) {
+        recordedFlaws = recordedFlaws.filter(f => f.no !== no);
+        renderRecordList();
+        const t = parseFloat(document.getElementById('thickness').value);
+        const wLen = parseFloat(document.getElementById('weldLength').value);
+        updateSumEvaluation(t, wLen);
+    }
+
+    function loadRecord(no) {
+        const f = recordedFlaws.find(item => item.no === no);
+        if (!f) return;
+        document.getElementById('flawX').value = f.x;
+        document.getElementById('probePos').value = f.y0;
+        document.getElementById('beamPath').value = f.w;
+        document.getElementById('region').value = f.region;
+        document.getElementById('flawLength').value = f.length;
+        draw();
     }
 
     function resetRecords() {
@@ -332,8 +447,15 @@
         let html = "";
         let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
         sorted.forEach((f) => {
-            html += `<div class="record-item">
-                <div class="record-item-top"><span>No.${f.no}</span><span>領域${regionNames[regionScores[f.region]]} L: ${f.length}</span></div>
+            let excludeMark = f.isExcluded ? '<span style="color:#888; font-size:0.7rem; margin-left:4px;">(評価外)</span>' : '';
+            html += `<div class="record-item" onclick="loadRecord(${f.no})" title="タップで当時のデータを復元します">
+                <div class="record-item-top">
+                    <span>No.${f.no} ${excludeMark}</span>
+                    <span style="display:flex; align-items:center;">
+                        領域${regionNames[regionScores[f.region]]} L: ${f.length}
+                        <button class="btn-delete" onclick="event.stopPropagation(); deleteRecord(${f.no})">×</button>
+                    </span>
+                </div>
                 <div class="record-item-bottom"><span>X: ${f.x}</span><span>Y: ${f.y0}</span><span>W: ${f.w}</span><span>d: ${f.d}</span><span>K: ${f.k}</span></div>
             </div>`;
         });
@@ -341,38 +463,26 @@
         listDiv.scrollTop = listDiv.scrollHeight;
     }
 
-    function estimateFlawType(T, G, d, K, jointShape, isBacking) {
-        if (d < 0) return "表面余盛りからの反射 (非欠陥)";
-        if (d > T && !isBacking) return "裏波・裏面余盛りからの反射 (非欠陥)";
-        if (d > T + 0.5 && isBacking) return "裏当て金内部 (だれ込み等)";
+    function getGrooveProfile(T, G, shape, topA_deg, botA_deg, D1, D3) {
+        const tA = topA_deg * Math.PI / 180;
+        const bA = botA_deg * Math.PI / 180;
+        const isDouble = (shape === 'k_groove' || shape === 'x_groove');
         
-        const tol = 2.0; const angleRad = 35 * (Math.PI / 180);
-        const isDouble = (jointShape === 'k_groove' || jointShape === 'x_groove');
-        
-        if (jointShape === 'single_bevel') {
-            if (Math.abs(d - T) < tol) return "ルート部 (溶込み不良)";
-            if (Math.abs(K) < tol) return "垂直開先面の融合不良 (LF)";
-            const slopeK = G + (T - d) * Math.tan(angleRad);
-            if (Math.abs(K - slopeK) < tol) return "斜め開先面の融合不良 (LF)";
-        } else if (jointShape === 'v_groove') {
-            if (Math.abs(d - T) < tol) return "ルート部 (溶込み不良)";
-            const slopeK = G/2 + (T - d) * Math.tan(angleRad);
-            if (Math.abs(K - slopeK) < tol || Math.abs(K + slopeK) < tol) return "開先面の融合不良 (LF)";
-        } else if (isDouble) {
-            if (Math.abs(d - T/2) < tol) return "ルート部中央 (溶込み不良)";
-            const d_from_surface = (d < T/2) ? d : (T - d);
-            let slopeK = 0;
-            if (jointShape === 'k_groove') {
-                slopeK = G + (T/2 - d_from_surface) * Math.tan(angleRad);
-                if (Math.abs(K) < tol) return "垂直開先面の融合不良 (LF)";
+        let eff_D1 = isDouble ? D1 : T;
+        let eff_D3 = isDouble ? D3 : 0;
+
+        return function(d) {
+            let xr;
+            if (!isDouble) {
+                xr = G/2 + (T - d) * Math.tan(tA);
             } else {
-                slopeK = G/2 + (T/2 - d_from_surface) * Math.tan(angleRad);
+                if (d < eff_D1) xr = G/2 + (eff_D1 - d) * Math.tan(tA);
+                else if (d <= eff_D1 + eff_D3) xr = G/2;
+                else xr = G/2 + (d - (eff_D1 + eff_D3)) * Math.tan(bA);
             }
-            if (Math.abs(K - slopeK) < tol || Math.abs(K + slopeK) < tol) {
-                return (d < T/2) ? "上側開先面の融合不良 (LF)" : "下側開先面の融合不良 (LF)";
-            }
-        }
-        return "溶接金属内 (ブローホール等)";
+            let xl = (shape === 'single_bevel' || shape === 'k_groove') ? -G/2 : -xr;
+            return { left: xl, right: xr };
+        };
     }
 
     function draw() {
@@ -387,12 +497,27 @@
         const L = parseFloat(document.getElementById('flawLength').value);
         const wLen = parseFloat(document.getElementById('weldLength').value) || 300;
         
+        const topA = parseFloat(document.getElementById('topAngle').value);
+        const botA = parseFloat(document.getElementById('bottomAngle').value);
+        const D1 = parseFloat(document.getElementById('dimD1').value) || 0;
+        const D3 = parseFloat(document.getElementById('dimD3').value) || 0;
+        const D2 = parseFloat(document.getElementById('dimD2').value) || 0;
+
+        const isDouble = (shape === 'k_groove' || shape === 'x_groove');
+        const warnEl = document.getElementById('dimWarning');
+        if (isDouble && Math.abs((D1 + D2 + D3) - T) > 0.1) {
+            warnEl.style.display = 'block';
+        } else {
+            warnEl.style.display = 'none';
+        }
+
+        const profile = getGrooveProfile(T, G, shape, topA, botA, D1, D3);
+
         const theta = thetaDeg * (Math.PI / 180);
         const y_calc = W * Math.sin(theta);
         const d_calc = W * Math.cos(theta);
         const K_calc = Y0 - y_calc;
         
-        const isDouble = (shape === 'k_groove' || shape === 'x_groove');
         const isBacking = !isDouble && (Y0 - T * Math.tan(theta) >= -12.5 && Y0 - T * Math.tan(theta) <= 12.5);
         const eff_T = isBacking ? T + 9 : T;
         
@@ -411,24 +536,50 @@
             document.getElementById('k_value').value = K_calc.toFixed(1);
             statusOverlay.innerText = isRef ? "1.0 SKIP (反射)" : (isBacking && d_calc > T ? "0.5 SKIP (裏金透過)" : "0.5 SKIP (直射)");
             
-            const est = estimateFlawType(T, G, d_disp, K_calc, shape, isBacking);
+            let est = "溶接金属内 (ブローホール等)";
+            if (d_disp < 0) est = "表面余盛りからの反射 (非欠陥)";
+            else if (d_disp > T && !isBacking) est = "裏波・裏面余盛りからの反射 (非欠陥)";
+            else if (d_disp > T + 0.5 && isBacking) est = "裏当て金内部 (だれ込み等 / 評価外)";
+            else {
+                const bounds = profile(d_disp);
+                const tol = 2.0;
+                
+                if (K_calc < bounds.left - 3.0 || K_calc > bounds.right + 3.0) {
+                    est = "母材のキズ (開先から3mm以上 / 評価外)";
+                } else if (!isDouble && Math.abs(d_disp - T) < tol && Math.abs(K_calc) < G/2 + tol) {
+                    est = "ルート部 (溶込み不良)";
+                } else if (isDouble && d_disp >= D1 - tol && d_disp <= D1 + D3 + tol && K_calc > bounds.left - tol && K_calc < bounds.right + tol) {
+                    est = "ルート面部 (溶込み不良)";
+                } else if (Math.abs(K_calc - bounds.left) < tol) {
+                    est = "左側開先面の融合不良 (LF)";
+                } else if (Math.abs(K_calc - bounds.right) < tol) {
+                    est = "右側開先面の融合不良 (LF)";
+                }
+            }
+
             flawTypeDisplay.innerText = est;
-            if (est.includes("非欠陥")) { flawTypeDisplay.style.color = "#00ff41"; }
-            else if (est.includes("融合不良")) { flawTypeDisplay.style.color = "#ff3e3e"; }
+            if (est.includes("非欠陥") || est.includes("評価外")) { flawTypeDisplay.style.color = "#00ff41"; }
+            else if (est.includes("不良")) { flawTypeDisplay.style.color = "#ff3e3e"; }
             else { flawTypeDisplay.style.color = "#ff9900"; }
 
-            const limits = getLimits(T);
-            const evalResult = evaluateSingle(region, L, limits);
+            let evalResult = evaluateSingle(region, L, getLimits(T));
+            if (est.includes("評価外") || est.includes("非欠陥")) {
+                let overrideReason = "余盛り等";
+                if (est.includes("母材")) overrideReason = "母材";
+                if (est.includes("裏当て金")) overrideReason = "裏当て金";
+                evalResult = { result: `評価外 (${overrideReason})`, isPass: true };
+            }
+
             singleJudgeText.innerText = evalResult.result;
             singleJudgeText.style.color = evalResult.isPass ? "#00ff41" : "#ff3e3e";
             judgeOverlay.style.borderColor = evalResult.isPass ? "#00ff41" : "#ff3e3e";
         }
         
         updateSumEvaluation(T, wLen);
-        render(T, G, R, eff_T, theta, W, d_disp, isRef, shape, Y0, isDouble, isBacking);
+        renderCanvas(T, R, eff_T, theta, W, d_disp, isRef, shape, Y0, isDouble, isBacking, profile, D1, D3);
     }
 
-    function render(T, G, R, eff_T, theta, W, d, isRef, shape, Y0, isDouble, isBacking) {
+    function renderCanvas(T, R, eff_T, theta, W, d, isRef, shape, Y0, isDouble, isBacking, profile, D1, D3) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         let max_x_dist = Math.max(20, Math.abs(Y0));
@@ -441,62 +592,53 @@
         
         const startY = (canvas.height / 2) - (T * scale / 2);
         const weldX = canvas.width / 2;
-        const gap = G * scale;
-        const gA = 35 * Math.PI / 180;
-        const T_px = T * scale;
-        const gW = T_px * Math.tan(gA);
-        const gW_half = (T_px / 2) * Math.tan(gA);
 
         ctx.fillStyle = "#333"; ctx.strokeStyle = "#888"; ctx.lineWidth = 2;
         
-        ctx.beginPath();
-        if (shape === 'single_bevel' || shape === 'k_groove') {
-            ctx.rect(weldX - gap/2 - 1000, startY, 1000, T_px);
-        } else if (shape === 'x_groove') {
-            ctx.moveTo(weldX - gap/2 - gW_half, startY); ctx.lineTo(weldX - gap/2, startY + T_px/2);
-            ctx.lineTo(weldX - gap/2 - gW_half, startY + T_px); ctx.lineTo(weldX - gap/2 - 1000, startY + T_px);
-            ctx.lineTo(weldX - gap/2 - 1000, startY); ctx.closePath();
-        } else { 
-            ctx.moveTo(weldX - gap/2 - gW, startY); ctx.lineTo(weldX - gap/2, startY + T_px);
-            ctx.lineTo(weldX - gap/2 - 1000, startY + T_px); ctx.lineTo(weldX - gap/2 - 1000, startY); ctx.closePath();
+        function drawPlate(side) {
+            ctx.beginPath();
+            const dirX = side === 'left' ? -1000 : 1000;
+            ctx.moveTo(weldX + profile(0)[side] * scale, startY);
+            if (isDouble) {
+                ctx.lineTo(weldX + profile(D1)[side] * scale, startY + D1 * scale);
+                ctx.lineTo(weldX + profile(D1+D3)[side] * scale, startY + (D1+D3) * scale);
+            } else if (shape === 'v_groove' && side === 'left') {
+                ctx.lineTo(weldX + profile(T)[side] * scale, startY + T * scale);
+            }
+            ctx.lineTo(weldX + profile(T)[side] * scale, startY + T * scale);
+            ctx.lineTo(weldX + dirX, startY + T * scale);
+            ctx.lineTo(weldX + dirX, startY);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
         }
-        ctx.fill(); ctx.stroke();
 
-        ctx.beginPath();
-        if (shape === 'k_groove' || shape === 'x_groove') {
-            ctx.moveTo(weldX + gap/2 + gW_half, startY); ctx.lineTo(weldX + gap/2, startY + T_px/2);
-            ctx.lineTo(weldX + gap/2 + gW_half, startY + T_px); ctx.lineTo(weldX + gap/2 + 1000, startY + T_px);
-            ctx.lineTo(weldX + gap/2 + 1000, startY); ctx.closePath();
-        } else {
-            ctx.moveTo(weldX + gap/2 + gW, startY); ctx.lineTo(weldX + gap/2, startY + T_px);
-            ctx.lineTo(weldX + gap/2 + 1000, startY + T_px); ctx.lineTo(weldX + gap/2 + 1000, startY); ctx.closePath();
-        }
-        ctx.fill(); ctx.stroke();
+        drawPlate('left');
+        drawPlate('right');
 
         if (R > 0) {
             ctx.fillStyle = "#444"; ctx.strokeStyle = "#888";
-            let leftEdge = weldX - gap/2; let rightEdge = weldX + gap/2;
-            if(shape==='single_bevel' || shape==='k_groove') { rightEdge += gW; }
-            else if(shape==='x_groove') { leftEdge -= gW_half; rightEdge += gW_half; }
-            else { leftEdge -= gW; rightEdge += gW; }
+            let leftEdge = weldX + profile(0).left * scale; 
+            let rightEdge = weldX + profile(0).right * scale;
             
             ctx.beginPath(); ctx.moveTo(leftEdge, startY);
             ctx.quadraticCurveTo((leftEdge+rightEdge)/2, startY - R * scale * 2, rightEdge, startY);
             ctx.fill(); ctx.stroke();
             
             if (isDouble || (shape==='v_groove' && !isBacking)) {
-                ctx.beginPath(); ctx.moveTo(leftEdge, startY + T_px);
-                ctx.quadraticCurveTo((leftEdge+rightEdge)/2, startY + T_px + R * scale * 2, rightEdge, startY + T_px);
+                let botLeftEdge = weldX + profile(T).left * scale;
+                let botRightEdge = weldX + profile(T).right * scale;
+                ctx.beginPath(); ctx.moveTo(botLeftEdge, startY + T * scale);
+                ctx.quadraticCurveTo((botLeftEdge+botRightEdge)/2, startY + T * scale + R * scale * 2, botRightEdge, startY + T * scale);
                 ctx.fill(); ctx.stroke();
             }
         }
 
         if (!isDouble) {
-            ctx.fillStyle = "#222"; ctx.fillRect(weldX - 12.5 * scale, startY + T_px, 25 * scale, 9 * scale);
-            ctx.strokeRect(weldX - 12.5 * scale, startY + T_px, 25 * scale, 9 * scale);
+            ctx.fillStyle = "#222"; ctx.fillRect(weldX - 12.5 * scale, startY + T * scale, 25 * scale, 9 * scale);
+            ctx.strokeRect(weldX - 12.5 * scale, startY + T * scale, 25 * scale, 9 * scale);
         }
 
-        const originX = (shape === 'single_bevel' || shape === 'k_groove') ? weldX - gap/2 : weldX;
+        const originX = (shape === 'single_bevel' || shape === 'k_groove') ? weldX + profile(0).left * scale : weldX;
         ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(0,150,255,0.6)";
         ctx.beginPath(); ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height); ctx.stroke(); ctx.setLineDash([]);
 
@@ -517,6 +659,7 @@
             ctx.beginPath(); ctx.arc(fX, fY, 6, 0, Math.PI*2); ctx.fillStyle = "#ff3e3e"; ctx.fill();
         }
     }
+    
     draw();
 </script>
 </body>
