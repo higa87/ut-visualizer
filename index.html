@@ -3,127 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Manual Edition v31)</title>
+    <title>UT-Visualizer Pro (Manual Edition v36)</title>
     <style>
-        :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); }
+        :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         header { padding: 12px 20px; border-bottom: 2px solid var(--accent-color); background-color: #000; display: flex; justify-content: space-between; align-items: center; }
         .main-container { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
-        .canvas-area { flex: 2; position: relative; background-color: #111; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; }
-        canvas { background-color: transparent; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 100%; height: auto; }
+        .canvas-area { flex: 2; position: relative; background-color: #111; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        canvas { background-color: transparent; max-width: 100%; height: auto; }
         #statusOverlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-color); font-weight: bold; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); background-color: rgba(0,0,0,0.8); padding: 5px 15px; border: 1px dashed var(--accent-color); }
-        #judgeOverlay { position: absolute; top: 20px; right: 20px; font-weight: bold; font-size: 1.5rem; background-color: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid #555; border-radius: 5px; }
-
-        .input-panel { flex: 1; min-width: 320px; max-width: 400px; background-color: var(--panel-color); padding: 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .input-group label { display: block; font-size: 0.8rem; color: var(--accent-color); margin-bottom: 4px; }
-        .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 10px; font-size: 1rem; box-sizing: border-box; font-family: 'Courier New', monospace; }
+        #judgeOverlay { position: absolute; top: 20px; right: 20px; font-weight: bold; font-size: 1.2rem; background-color: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid #555; border-radius: 5px; text-align: right; }
+        .input-panel { flex: 1; min-width: 380px; max-width: 480px; background-color: var(--panel-color); padding: 15px 20px; border-left: 2px solid var(--accent-color); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .input-group { margin-bottom: 2px; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; }
+        .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 6px 8px; font-size: 0.95rem; box-sizing: border-box; font-family: 'Courier New', monospace; }
         .input-group input:focus, .input-group select:focus { border-color: var(--accent-color); outline: none; }
         input[readonly] { color: #888; border-color: #222; }
+        .flaw-estimation { border: 1px dashed #ff9900; padding: 8px; background: rgba(255,153,0,0.1); margin-top: 4px; }
+        .flaw-estimation label { color: #ff9900; font-size: 0.8rem; font-weight: bold; }
+        .flaw-estimation div { font-weight: bold; color: #fff; font-size: 0.95rem; margin-top: 2px; }
         
-        .flaw-estimation { border: 1px dashed #ff9900; padding: 12px; background: rgba(255,153,0,0.1); margin-top: 5px; }
-        .flaw-estimation label { color: #ff9900; font-size: 0.85rem; font-weight: bold; }
-        .flaw-estimation div { font-weight: bold; color: #fff; font-size: 1.1rem; margin-top: 5px; letter-spacing: 1px; }
-
-        @media (max-width: 768px) { .main-container { flex-direction: column; } .canvas-area { flex: 1; min-height: 350px; } .input-panel { border-left: none; border-top: 2px solid var(--accent-color); height: auto; } }
+        .record-section { margin-top: 5px; border-top: 2px dashed #444; padding-top: 8px; }
+        .record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .btn { background: #333; color: #fff; border: 1px solid var(--accent-color); padding: 5px 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: var(--accent-color); color: #000; }
+        .btn-record { background: rgba(0, 255, 65, 0.2); width: 100%; padding: 8px; font-size: 1rem; margin-top: 5px; }
+        .btn-reset { border-color: var(--fail-color); color: var(--fail-color); padding: 4px 8px; font-size: 0.8rem; }
+        .btn-reset:hover { background: var(--fail-color); color: #fff; }
+        .record-list { max-height: 150px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 0.85rem; }
+        .record-item { display: flex; flex-direction: column; padding: 6px; border-bottom: 1px solid #333; }
+        .record-item:last-child { border-bottom: none; }
+        .record-item-top { display: flex; justify-content: space-between; color: var(--accent-color); font-weight: bold; margin-bottom: 2px; }
+        .record-item-bottom { display: flex; justify-content: space-between; color: #aaa; font-size: 0.75rem; }
+        .sum-result { margin-top: 8px; padding: 10px; background: #000; border: 2px solid #555; text-align: center; font-size: 1.05rem; font-weight: bold; line-height: 1.4; }
+        .flex-row { display: flex; gap: 8px; }
+        .flex-1 { flex: 1; }
+        
+        @media (max-width: 768px) { .main-container { flex-direction: column; } .canvas-area { min-height: 250px; } .input-panel { max-width: none; border-left: none; border-top: 2px solid var(--accent-color); } }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold;">UT-VISUALIZER // MANUAL_v31</div>
-    <div style="font-size: 0.8rem; opacity: 0.7;">製作者: Y.HIGA</div>
+    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v36</div>
+    <div style="font-size: 0.8rem; opacity: 0.7;">製作者 比嘉</div>
 </header>
 
 <div class="main-container">
     <div class="canvas-area">
-        <canvas id="utCanvas" width="800" height="500"></canvas>
+        <canvas id="utCanvas" width="800" height="400"></canvas>
         <div id="statusOverlay">READY</div>
-        <div id="judgeOverlay" style="color:#aaa;">判定待ち</div>
+        <div id="judgeOverlay" style="color:#aaa;">
+            <div style="font-size:0.8rem; color:#fff;">【単一キズ評価】</div>
+            <div id="singleJudgeText">待機中</div>
+        </div>
     </div>
 
     <div class="input-panel" id="inputs">
-        <div style="display: flex; gap: 10px;">
-            <div class="input-group" style="flex: 1;">
+        <div class="flex-row">
+            <div class="input-group flex-1">
                 <label>板厚 T (mm)</label>
                 <select id="thickness">
-                    <option value="9" selected>9</option>
-                    <option value="12">12</option>
-                    <option value="16">16</option>
-                    <option value="19">19</option>
-                    <option value="22">22</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
+                    <option value="9">9</option><option value="12">12</option>
+                    <option value="16">16</option><option value="19" selected>19</option>
+                    <option value="22">22</option><option value="25">25</option>
+                    <option value="32">32</option><option value="50">50</option>
                 </select>
             </div>
-            <div class="input-group" style="flex: 1;">
-                <label>ルートギャップ G</label>
-                <input type="number" id="rootGap" value="7.0" step="1.0">
+            <div class="input-group flex-1">
+                <label>溶接長さ (mm)</label>
+                <input type="number" id="weldLength" value="300" step="10">
+            </div>
+            <div class="input-group flex-1">
+                <label>余盛り (mm)</label>
+                <input type="number" id="reinf" value="2.0" step="0.5">
             </div>
         </div>
         
-        <div class="input-group">
-            <label>開先形状 (Joint Shape)</label>
-            <select id="jointShape">
-                <option value="single_bevel" selected>レ形開先 (片側垂直)</option>
-                <option value="v_groove">V形開先 (両側斜め)</option>
-            </select>
+        <div class="flex-row">
+            <div class="input-group flex-1">
+                <label>開先形状</label>
+                <select id="jointShape">
+                    <option value="single_bevel" selected>レ形 (片側)</option>
+                    <option value="v_groove">V形 (両側)</option>
+                    <option value="k_groove">K形 (両面)</option>
+                    <option value="x_groove">X形 (両面)</option>
+                </select>
+            </div>
+            <div class="input-group flex-1" style="flex:0.5;">
+                <label>ギャップ</label>
+                <input type="number" id="rootGap" value="7.0" step="1.0">
+            </div>
+            <div class="input-group flex-1" style="flex:0.5;">
+                <label>屈折角 θ</label>
+                <input type="number" id="angle" value="70.0" step="0.1">
+            </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <div class="input-group" style="flex: 1;">
-                <label>屈折角 θ (deg)</label>
-                <input type="number" id="angle" value="0.0" step="0.1">
-            </div>
-            <div class="input-group" style="flex: 1;">
-                <label>探触子 Y0 (mm)</label>
+        <div style="border-top: 1px solid #444; margin: 4px 0;"></div>
+
+        <div class="flex-row">
+            <div class="input-group flex-1">
+                <label>探触子 Y (mm)</label>
                 <input type="number" id="probePos" value="0.0" step="0.5">
             </div>
+            <div class="input-group flex-1">
+                <label>路程 W (mm)</label>
+                <input type="number" id="beamPath" value="0.0" step="0.1" style="font-weight:bold; color:#fff; background:#222; border: 2px solid var(--accent-color);">
+            </div>
         </div>
 
-        <div class="input-group">
-            <label>ビーム路程 W (mm)</label>
-            <input type="number" id="beamPath" value="0.0" step="0.1" style="font-weight:bold; color:#fff; background:#333; border: 2px solid #00ff41;">
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <div class="input-group" style="flex: 1;">
+        <div class="flex-row">
+            <div class="input-group flex-1">
                 <label>深さ d (mm)</label>
                 <input type="number" id="depth" value="-" readonly>
             </div>
-            <div class="input-group" style="flex: 1;">
-                <label>欠陥位置 K (mm)</label>
-                <input type="number" id="k_value" value="-" readonly style="color:#00ff41; font-weight:bold;">
+            <div class="input-group flex-1">
+                <label>位置 K (mm)</label>
+                <input type="number" id="k_value" value="-" readonly style="color:var(--accent-color); font-weight:bold;">
             </div>
         </div>
 
         <div class="flaw-estimation">
-            <label>🤖 推定される欠陥内容</label>
+            <label>🤖 欠陥内容の推定 (AI)</label>
             <div id="flawType">-</div>
         </div>
         
-        <div style="border-top: 1px solid #444; margin: 5px 0;"></div>
+        <div style="border-top: 1px solid #444; margin: 4px 0;"></div>
 
-        <div style="font-size: 0.85rem; color: #ff9900; margin-bottom: -5px; font-weight: bold;">【 合否判定入力 】</div>
-        <div style="display: flex; gap: 10px;">
-            <div class="input-group" style="flex: 1;">
-                <label>領域 (エコー高さ)</label>
+        <div style="font-size: 0.85rem; color: #ff9900; font-weight: bold; margin-bottom: 2px;">【 記録＆自動総和判定 】</div>
+        <div class="flex-row">
+            <div class="input-group flex-1">
+                <label>X位置 (mm)</label>
+                <input type="number" id="flawX" value="0.0" step="1.0">
+            </div>
+            <div class="input-group flex-1" style="flex: 0.6;">
+                <label>領域</label>
                 <select id="region">
-                    <option value="-">-</option>
-                    <option value="I" selected>Ⅰ (1)</option>
-                    <option value="II">Ⅱ (2)</option>
-                    <option value="III">Ⅲ (3)</option>
-                    <option value="IV">Ⅳ (4)</option>
+                    <option value="I" selected>Ⅰ</option><option value="II">Ⅱ</option>
+                    <option value="III">Ⅲ</option><option value="IV">Ⅳ</option><option value="V">Ⅴ</option>
                 </select>
             </div>
-            <div class="input-group" style="flex: 1;">
-                <label>指示長さ L (mm)</label>
+            <div class="input-group flex-1" style="flex: 0.8;">
+                <label>長さ L (mm)</label>
                 <input type="number" id="flawLength" value="0.0" step="1.0">
             </div>
         </div>
+        
+        <button class="btn btn-record" onclick="recordCurrentFlaw()">＋ この位置のキズを記録</button>
 
-        <div style="margin-top: auto; text-align: center; font-size: 0.7rem; color: #666; padding-top: 15px;">
-            製作者: Y.HIGA<br>
-            MIYAMASA KOGYO DESIGN DEPT.
+        <div class="record-section">
+            <div class="record-header">
+                <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem;">📋 野帳データ (No連番)</span>
+                <button class="btn btn-reset" onclick="resetRecords()">全消去</button>
+            </div>
+            <div class="record-list" id="recordList">
+                <div style="color: #666; text-align: center; padding: 10px;">記録がありません</div>
+            </div>
+            <div class="sum-result" id="sumResult">
+                <div style="font-size: 0.8rem; color: #aaa;">総和判定 (境界値: - mm)</div>
+                <span style="color: #fff;">総和: 0.0 mm</span>
+            </div>
         </div>
     </div>
 </div>
@@ -133,180 +173,349 @@
     const ctx = canvas.getContext('2d');
     const statusOverlay = document.getElementById('statusOverlay');
     const judgeOverlay = document.getElementById('judgeOverlay');
+    const singleJudgeText = document.getElementById('singleJudgeText');
     const flawTypeDisplay = document.getElementById('flawType');
+    
+    let recordedFlaws = [];
+    let flawCounter = 0;
+    const regionScores = { "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5 };
+    const regionNames = ["", "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ"];
 
     const inputs = document.querySelectorAll('#inputs input, #inputs select');
     inputs.forEach(input => {
-        input.addEventListener('input', draw);
-        input.addEventListener('change', draw);
-        input.addEventListener('keyup', draw);
+        ['input', 'change', 'keyup'].forEach(ev => input.addEventListener(ev, draw));
     });
 
-    function judgeFlaw(region, L, W) {
-        if (W === 0) return { text: "待機中", color: "#aaa", border: "#555" };
-        if (region === "-") return { text: "判定待ち", color: "#aaa", border: "#555" };
-        if (region === "I") return { text: "合 格", color: "#00ff41", border: "#00ff41" };
-        if (region === "IV") return { text: "不合格", color: "#ff3e3e", border: "#ff3e3e" };
-        if (region === "II" || region === "III") {
-            // ※仮の社内基準
-            if (L <= 30) return { text: "合 格", color: "#00ff41", border: "#00ff41" }; 
-            else return { text: "不合格", color: "#ff3e3e", border: "#ff3e3e" };
-        }
-        return { text: "エラー", color: "#ff9900", border: "#ff9900" };
+    function getLimits(t) {
+        if (t >= 6 && t <= 20) return { S: 10, M: 15, ML: 20, L: 30, LL: 40, ignore: 5 };
+        if (t > 20 && t <= 48) return { S: t/2, M: t*0.75, ML: t, L: t*1.5, LL: t*2, ignore: t/4 };
+        if (t > 48) return { S: 24, M: 36, ML: 48, L: 72, LL: 96, ignore: 12 };
+        return { S: 0, M: 0, ML: 0, L: 0, LL: 0, ignore: 0 };
     }
 
-    function estimateFlawType(T, G, d, K, jointShape) {
-        const tol_K = 2.5; 
-        const tol_d = 2.0;
+    function evaluateSingle(region, length, limits) {
+        if (length < limits.ignore) return { result: "評価外 (無視)", isPass: true };
+        if (region === "I") return { result: "合 格", isPass: true };
+        if (region === "II" && length >= limits.L) return { result: "不合格 (L以上)", isPass: false };
+        if ((region === "III" || region === "IV") && length >= limits.ML) return { result: "不合格 (ML以上)", isPass: false };
+        if (region === "V" && length >= limits.M) return { result: "不合格 (M以上)", isPass: false };
+        return { result: "合 格", isPass: true };
+    }
 
-        if (d > T + 0.5) return "裏当て金内部 (だれ込み等)";
-
-        if (Math.abs(d - T) <= tol_d) {
-            if (jointShape === 'single_bevel' && K >= -tol_K && K <= G + tol_K) {
-                return "ルート部 (溶込み不良/スラグ巻込)";
-            } else if (jointShape === 'v_groove' && K >= -G/2 - tol_K && K <= G/2 + tol_K) {
-                return "ルート部 (溶込み不良/スラグ巻込)";
-            }
+    function updateSumEvaluation(t, wLen) {
+        const sumBox = document.getElementById('sumResult');
+        if (recordedFlaws.length === 0) {
+            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総和判定</div><span style="color: #fff;">記録なし</span>`;
+            sumBox.style.borderColor = "#555";
+            return;
         }
 
-        if (d >= 0 && d <= T) {
-            const angleRad = 35 * (Math.PI / 180);
-            if (jointShape === 'single_bevel') {
-                const rightFaceK = G + (T - d) * Math.tan(angleRad);
-                const leftFaceK = 0;
-                
-                if (Math.abs(K - leftFaceK) <= tol_K) return "垂直開先面の融合不良 (LF)";
-                if (Math.abs(K - rightFaceK) <= tol_K) return "斜め開先面の融合不良 (LF)";
-                if (K > leftFaceK + tol_K && K < rightFaceK - tol_K) return "溶接金属内 (ブローホール等)";
+        const limits = getLimits(t);
+        let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
+        let merged = [];
+        
+        // 結合処理（Noの記録付き）
+        for (let f of sorted) {
+            if (f.length < limits.ignore) continue;
+            let start = f.x; let end = f.x + f.length; let rScore = regionScores[f.region];
+            
+            if (merged.length === 0) {
+                merged.push({ start: start, end: end, maxL: f.length, maxRegScore: rScore, nos: [f.no] });
             } else {
-                const rightFaceK = G/2 + (T - d) * Math.tan(angleRad);
-                const leftFaceK = -G/2 - (T - d) * Math.tan(angleRad);
+                let last = merged[merged.length - 1];
+                let gap = start - last.end;
+                let maxOriginalL = Math.max(last.maxL, f.length);
                 
-                if (Math.abs(K - rightFaceK) <= tol_K || Math.abs(K - leftFaceK) <= tol_K) return "開先面の融合不良 (LF)";
-                if (K > leftFaceK + tol_K && K < rightFaceK - tol_K) return "溶接金属内 (ブローホール等)";
+                if (gap <= maxOriginalL) {
+                    last.end = Math.max(last.end, end);
+                    last.maxL = Math.max(last.maxL, f.length);
+                    last.maxRegScore = Math.max(last.maxRegScore, rScore);
+                    last.nos.push(f.no); // 同一欠陥としてNoを追加
+                } else {
+                    merged.push({ start: start, end: end, maxL: f.length, maxRegScore: rScore, nos: [f.no] });
+                }
             }
         }
 
-        return "母材内部 (キズ / ラメラーテア等)";
+        if (merged.length === 0) {
+            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総和判定</div><span style="color: #00ff41;">全て足切り(評価外)のため合格</span>`;
+            sumBox.style.borderColor = "#00ff41";
+            return;
+        }
+
+        // 同一欠陥のテキスト生成
+        let mergeTexts = [];
+        merged.forEach(m => {
+            if (m.nos.length > 1) mergeTexts.push(`No.${m.nos.join('と')}は同一欠陥`);
+        });
+        let mergeStr = mergeTexts.length > 0 ? `<div style="color:#ff9900; font-size:0.8rem; margin-top:4px;">※${mergeTexts.join(', ')}</div>` : '';
+
+        // 300mm区間探索
+        let windowSize = Math.min(wLen, 300);
+        let maxSum = 0; let worstRegScore = 0;
+
+        for (let i = 0; i < merged.length; i++) {
+            let winStart = merged[i].start; let winEnd = winStart + windowSize;
+            let currentSum = 0; let currentMaxReg = 0;
+            
+            for (let j = 0; j < merged.length; j++) {
+                let m = merged[j];
+                let overlapStart = Math.max(winStart, m.start);
+                let overlapEnd = Math.min(winEnd, m.end);
+                if (overlapEnd > overlapStart) {
+                    currentSum += (overlapEnd - overlapStart);
+                    currentMaxReg = Math.max(currentMaxReg, m.maxRegScore);
+                }
+            }
+            if (currentSum > maxSum) { maxSum = currentSum; worstRegScore = currentMaxReg; }
+        }
+
+        let maxRegionStr = regionNames[worstRegScore] || "Ⅰ";
+        let sumLimit = 9999; let limitName = "-";
+        if (worstRegScore === 2) { sumLimit = limits.LL; limitName = "LL"; }
+        else if (worstRegScore === 3 || worstRegScore === 4) { sumLimit = limits.L; limitName = "L"; }
+        else if (worstRegScore === 5) { sumLimit = limits.ML; limitName = "ML"; }
+
+        const isPass = (worstRegScore === 1) || (maxSum < sumLimit);
+        const color = isPass ? "#00ff41" : "#ff3e3e";
+        const judgeStr = isPass ? "合格" : "不合格";
+        
+        sumBox.style.borderColor = color;
+        sumBox.innerHTML = `
+            <div style="font-size: 0.75rem; color: #aaa;">最悪${windowSize}mm区間 (領域: ${maxRegionStr} / 限界 ${limitName}=${sumLimit}mm)</div>
+            <span style="color: ${color};">評価長さ和: ${maxSum.toFixed(1)} mm <br><b>【 ${judgeStr} 】</b></span>
+            ${mergeStr}
+        `;
+    }
+
+    function recordCurrentFlaw() {
+        const x = parseFloat(document.getElementById('flawX').value);
+        const y0 = document.getElementById('probePos').value;
+        const w = document.getElementById('beamPath').value;
+        const d = document.getElementById('depth').value;
+        const k = document.getElementById('k_value').value;
+        if (d === "-" || k === "-") { alert("Wを入力して位置を確定してください"); return; }
+        
+        const region = document.getElementById('region').value;
+        const length = parseFloat(document.getElementById('flawLength').value);
+        const t = parseFloat(document.getElementById('thickness').value);
+        const wLen = parseFloat(document.getElementById('weldLength').value);
+        
+        flawCounter++;
+        recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length });
+        document.getElementById('flawX').value = (x + length + 10).toFixed(1);
+        
+        renderRecordList();
+        updateSumEvaluation(t, wLen);
+    }
+
+    function resetRecords() {
+        if(confirm("野帳データを全消去しますか？")) {
+            recordedFlaws = []; flawCounter = 0;
+            renderRecordList();
+            const t = parseFloat(document.getElementById('thickness').value);
+            const wLen = parseFloat(document.getElementById('weldLength').value);
+            updateSumEvaluation(t, wLen);
+        }
+    }
+
+    function renderRecordList() {
+        const listDiv = document.getElementById('recordList');
+        if (recordedFlaws.length === 0) { listDiv.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">記録がありません</div>'; return; }
+        let html = "";
+        let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
+        sorted.forEach((f) => {
+            html += `<div class="record-item">
+                <div class="record-item-top"><span>No.${f.no}</span><span>領域${regionNames[regionScores[f.region]]} L: ${f.length}</span></div>
+                <div class="record-item-bottom"><span>X: ${f.x}</span><span>Y: ${f.y0}</span><span>W: ${f.w}</span><span>d: ${f.d}</span><span>K: ${f.k}</span></div>
+            </div>`;
+        });
+        listDiv.innerHTML = html;
+        listDiv.scrollTop = listDiv.scrollHeight;
+    }
+
+    function estimateFlawType(T, G, d, K, jointShape, isBacking) {
+        if (d < 0) return "表面余盛りからの反射 (非欠陥)";
+        if (d > T && !isBacking) return "裏波・裏面余盛りからの反射 (非欠陥)";
+        if (d > T + 0.5 && isBacking) return "裏当て金内部 (だれ込み等)";
+        
+        const tol = 2.0; const angleRad = 35 * (Math.PI / 180);
+        const isDouble = (jointShape === 'k_groove' || jointShape === 'x_groove');
+        
+        if (jointShape === 'single_bevel') {
+            if (Math.abs(d - T) < tol) return "ルート部 (溶込み不良)";
+            if (Math.abs(K) < tol) return "垂直開先面の融合不良 (LF)";
+            const slopeK = G + (T - d) * Math.tan(angleRad);
+            if (Math.abs(K - slopeK) < tol) return "斜め開先面の融合不良 (LF)";
+        } else if (jointShape === 'v_groove') {
+            if (Math.abs(d - T) < tol) return "ルート部 (溶込み不良)";
+            const slopeK = G/2 + (T - d) * Math.tan(angleRad);
+            if (Math.abs(K - slopeK) < tol || Math.abs(K + slopeK) < tol) return "開先面の融合不良 (LF)";
+        } else if (isDouble) {
+            if (Math.abs(d - T/2) < tol) return "ルート部中央 (溶込み不良)";
+            const d_from_surface = (d < T/2) ? d : (T - d);
+            let slopeK = 0;
+            if (jointShape === 'k_groove') {
+                slopeK = G + (T/2 - d_from_surface) * Math.tan(angleRad);
+                if (Math.abs(K) < tol) return "垂直開先面の融合不良 (LF)";
+            } else {
+                slopeK = G/2 + (T/2 - d_from_surface) * Math.tan(angleRad);
+            }
+            if (Math.abs(K - slopeK) < tol || Math.abs(K + slopeK) < tol) {
+                return (d < T/2) ? "上側開先面の融合不良 (LF)" : "下側開先面の融合不良 (LF)";
+            }
+        }
+        return "溶接金属内 (ブローホール等)";
     }
 
     function draw() {
-        const T = parseFloat(document.getElementById('thickness').value) || 25;
-        const G = parseFloat(document.getElementById('rootGap').value) || 7;
-        const thetaDeg = parseFloat(document.getElementById('angle').value) || 0; 
-        const Y0 = parseFloat(document.getElementById('probePos').value) || 0; 
-        const W = parseFloat(document.getElementById('beamPath').value) || 0;
-        const jointShape = document.getElementById('jointShape').value;
+        const T = parseFloat(document.getElementById('thickness').value);
+        const G = parseFloat(document.getElementById('rootGap').value);
+        const R = parseFloat(document.getElementById('reinf').value) || 0;
+        const thetaDeg = parseFloat(document.getElementById('angle').value);
+        const Y0 = parseFloat(document.getElementById('probePos').value);
+        const W = parseFloat(document.getElementById('beamPath').value);
+        const shape = document.getElementById('jointShape').value;
         const region = document.getElementById('region').value;
-        const L = parseFloat(document.getElementById('flawLength').value) || 0;
+        const L = parseFloat(document.getElementById('flawLength').value);
+        const wLen = parseFloat(document.getElementById('weldLength').value) || 300;
         
         const theta = thetaDeg * (Math.PI / 180);
-
         const y_calc = W * Math.sin(theta);
         const d_calc = W * Math.cos(theta);
-        
         const K_calc = Y0 - y_calc;
-
-        const x_at_T = Y0 - T * Math.tan(theta);
-        const isHitBackingBar = (x_at_T >= -12.5 && x_at_T <= 12.5);
-        const effective_T = isHitBackingBar ? T + 9 : T;
         
-        let d_display = 0; let isReflected = false; let skipText = "";
+        const isDouble = (shape === 'k_groove' || shape === 'x_groove');
+        const isBacking = !isDouble && (Y0 - T * Math.tan(theta) >= -12.5 && Y0 - T * Math.tan(theta) <= 12.5);
+        const eff_T = isBacking ? T + 9 : T;
         
+        let d_disp, isRef = false;
         if (W === 0) {
-            skipText = "READY";
-            document.getElementById('depth').value = "-";
-            document.getElementById('k_value').value = "-";
+            statusOverlay.innerText = "READY";
+            document.getElementById('depth').value = "-"; document.getElementById('k_value').value = "-";
+            singleJudgeText.innerText = "待機中"; singleJudgeText.style.color = "#aaa"; judgeOverlay.style.borderColor = "#555";
+            flawTypeDisplay.innerText = "-";
+            flawTypeDisplay.style.color = "#fff";
         } else {
-            if (d_calc <= effective_T) {
-                d_display = d_calc; isReflected = false; 
-                skipText = (isHitBackingBar && d_calc > T) ? "0.5 SKIP (裏当て金へ透過)" : "0.5 SKIP (直射)";
-            } else {
-                d_display = effective_T - (d_calc - effective_T); isReflected = true; skipText = "1.0 SKIP (反射)";
-            }
-            document.getElementById('depth').value = d_display.toFixed(1);
-            document.getElementById('k_value').value = K_calc.toFixed(1);
-        }
-        statusOverlay.innerText = skipText;
-
-        const judgment = judgeFlaw(region, L, W);
-        judgeOverlay.innerText = judgment.text;
-        judgeOverlay.style.color = judgment.color;
-        judgeOverlay.style.borderColor = judgment.border;
-
-        // ★Wが0の時は推定しない
-        const estimation = (W === 0) ? "未入力" : estimateFlawType(T, G, d_display, K_calc, jointShape);
-        flawTypeDisplay.innerText = estimation;
-        
-        if (estimation.includes("融合不良")) flawTypeDisplay.style.color = "#ff3e3e"; 
-        else if (estimation.includes("ブローホール")) flawTypeDisplay.style.color = "#00ff41"; 
-        else if (estimation.includes("だれ込み")) flawTypeDisplay.style.color = "#ff9900"; 
-        else flawTypeDisplay.style.color = "#fff";
-
-        renderPhysicsView(T, G, effective_T, theta, W, y_calc, d_display, isReflected, jointShape, Y0);
-    }
-
-    function renderPhysicsView(T, G, effective_T, theta, W, y, d, isReflected, jointShape, Y0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const scale = Math.min(8.0, 250 / T); 
-        const centerY = canvas.height / 2; const startY = centerY - (T * scale) / 2; const weldCenterX = 250; 
-        ctx.save();
-        
-        const plateWidth = 1000; 
-        const gap = G * scale;
-        const backingHeight = 9 * scale; const backingWidth = 25 * scale; 
-        
-        ctx.fillStyle = "#333"; ctx.strokeStyle = "#888"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.rect(weldCenterX - gap/2 - plateWidth, startY, plateWidth, T * scale); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.rect(weldCenterX + gap/2, startY, plateWidth, T * scale); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#222"; ctx.strokeStyle = "#666";
-        ctx.beginPath(); ctx.rect(weldCenterX - backingWidth/2, startY + T*scale, backingWidth, backingHeight); ctx.fill(); ctx.stroke();
-        const grooveAngle = 35 * (Math.PI / 180); const grooveTopWidth = (T * scale) * Math.tan(grooveAngle);
-        ctx.fillStyle = "rgba(80, 80, 80, 0.8)"; ctx.beginPath(); ctx.moveTo(weldCenterX - gap/2, startY + T*scale); ctx.lineTo(weldCenterX + gap/2, startY + T*scale); 
-        
-        if (jointShape === 'single_bevel') { 
-            ctx.lineTo(weldCenterX + gap/2 + grooveTopWidth, startY); 
-            ctx.lineTo(weldCenterX - gap/2, startY); 
-        } else { 
-            ctx.lineTo(weldCenterX + gap/2 + grooveTopWidth, startY); 
-            ctx.lineTo(weldCenterX - gap/2 - grooveTopWidth, startY); 
-        }
-        ctx.closePath(); ctx.fill(); ctx.stroke();
-        
-        const originX = (jointShape === 'single_bevel') ? (weldCenterX - gap/2) : weldCenterX;
-        
-        ctx.beginPath(); ctx.strokeStyle = "rgba(0, 150, 255, 0.5)"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
-        ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height); ctx.stroke(); ctx.setLineDash([]);
-        
-        const probeX = originX + Y0 * scale; 
-        ctx.fillStyle = "#ccc"; ctx.fillRect(probeX - 20, startY - 25, 40, 25); ctx.strokeStyle = "#fff"; ctx.strokeRect(probeX - 20, startY - 25, 40, 25);
-        ctx.beginPath(); ctx.strokeStyle = "#555"; ctx.lineWidth = 2; ctx.moveTo(probeX + 10, startY - 25); ctx.bezierCurveTo(probeX + 20, startY - 50, probeX + 40, startY - 10, probeX + 60, startY - 30); ctx.stroke();
-        
-        ctx.fillStyle = "#ff3e3e";
-        ctx.beginPath();
-        ctx.moveTo(probeX, startY); 
-        ctx.lineTo(probeX - 6, startY - 10);
-        ctx.lineTo(probeX + 6, startY - 10);
-        ctx.fill();
-
-        // ★ Wが0より大きい場合のみ、ビームとキズを描画する
-        if (W > 0) {
-            ctx.beginPath(); ctx.lineWidth = 2; ctx.strokeStyle = "#00ff41"; ctx.moveTo(probeX, startY);
-            let flawX, flawY;
-
-            if (!isReflected) {
-                const x_move = W * Math.sin(theta) * scale; const y_move = W * Math.cos(theta) * scale; flawX = probeX - x_move; flawY = startY + y_move; ctx.lineTo(flawX, flawY);
-            } else {
-                ctx.setLineDash([5, 5]); const x_to_bottom = effective_T * Math.tan(theta) * scale; const reflectX = probeX - x_to_bottom; const reflectY = startY + effective_T * scale; ctx.lineTo(reflectX, reflectY);
-                const W_to_bottom = effective_T / Math.cos(theta); const W_remain = W - W_to_bottom; const x_move_2 = W_remain * Math.sin(theta) * scale; const y_move_2 = W_remain * Math.cos(theta) * scale; flawX = reflectX - x_move_2; flawY = reflectY - y_move_2; ctx.lineTo(flawX, flawY);
-            }
+            if (d_calc <= eff_T) { d_disp = d_calc; isRef = false; }
+            else { d_disp = eff_T - (d_calc - eff_T); isRef = true; }
             
-            ctx.stroke(); ctx.setLineDash([]);
-            ctx.beginPath(); ctx.arc(flawX, flawY, 5, 0, Math.PI * 2); ctx.fillStyle = "#ff3e3e"; ctx.fill(); ctx.strokeStyle = "#ff3e3e"; ctx.beginPath(); ctx.arc(flawX, flawY, 10, 0, Math.PI * 2); ctx.stroke();
+            document.getElementById('depth').value = d_disp.toFixed(1);
+            document.getElementById('k_value').value = K_calc.toFixed(1);
+            statusOverlay.innerText = isRef ? "1.0 SKIP (反射)" : (isBacking && d_calc > T ? "0.5 SKIP (裏当て金透過)" : "0.5 SKIP (直射)");
+            
+            const est = estimateFlawType(T, G, d_disp, K_calc, shape, isBacking);
+            flawTypeDisplay.innerText = est;
+            if (est.includes("非欠陥")) { flawTypeDisplay.style.color = "#00ff41"; }
+            else if (est.includes("融合不良")) { flawTypeDisplay.style.color = "#ff3e3e"; }
+            else { flawTypeDisplay.style.color = "#ff9900"; }
+
+            const limits = getLimits(T);
+            const evalResult = evaluateSingle(region, L, limits);
+            singleJudgeText.innerText = evalResult.result;
+            singleJudgeText.style.color = evalResult.isPass ? "#00ff41" : "#ff3e3e";
+            judgeOverlay.style.borderColor = evalResult.isPass ? "#00ff41" : "#ff3e3e";
         }
-        ctx.restore();
+        
+        updateSumEvaluation(T, wLen);
+        render(T, G, R, eff_T, theta, W, d_disp, isRef, shape, Y0, isDouble, isBacking);
     }
-    
+
+    function render(T, G, R, eff_T, theta, W, d, isRef, shape, Y0, isDouble, isBacking) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // オートフォーカス（動的スケール）の計算
+        let max_x_dist = Math.max(20, Math.abs(Y0));
+        if (W > 0) {
+            max_x_dist = Math.max(max_x_dist, Math.abs(Y0 - W * Math.sin(theta)));
+            if (isRef) max_x_dist = Math.max(max_x_dist, Math.abs(Y0 - eff_T * Math.tan(theta)));
+        }
+        let scale = Math.min(8.0, 200 / (T + R*2 + 15)); // 縦方向のフィット
+        scale = Math.min(scale, (canvas.width / 2 - 40) / max_x_dist); // 横方向のオートフォーカス
+        
+        const startY = (canvas.height / 2) - (T * scale / 2);
+        const weldX = canvas.width / 2; // 常に中心
+        const gap = G * scale;
+        const gA = 35 * Math.PI / 180;
+        const T_px = T * scale;
+        const gW = T_px * Math.tan(gA);
+        const gW_half = (T_px / 2) * Math.tan(gA);
+
+        ctx.fillStyle = "#333"; ctx.strokeStyle = "#888"; ctx.lineWidth = 2;
+        
+        // --- 鉄骨描画 ---
+        ctx.beginPath();
+        if (shape === 'single_bevel' || shape === 'k_groove') {
+            ctx.rect(weldX - gap/2 - 1000, startY, 1000, T_px);
+        } else if (shape === 'x_groove') {
+            ctx.moveTo(weldX - gap/2 - gW_half, startY); ctx.lineTo(weldX - gap/2, startY + T_px/2);
+            ctx.lineTo(weldX - gap/2 - gW_half, startY + T_px); ctx.lineTo(weldX - gap/2 - 1000, startY + T_px);
+            ctx.lineTo(weldX - gap/2 - 1000, startY); ctx.closePath();
+        } else { 
+            ctx.moveTo(weldX - gap/2 - gW, startY); ctx.lineTo(weldX - gap/2, startY + T_px);
+            ctx.lineTo(weldX - gap/2 - 1000, startY + T_px); ctx.lineTo(weldX - gap/2 - 1000, startY); ctx.closePath();
+        }
+        ctx.fill(); ctx.stroke();
+
+        ctx.beginPath();
+        if (shape === 'k_groove' || shape === 'x_groove') {
+            ctx.moveTo(weldX + gap/2 + gW_half, startY); ctx.lineTo(weldX + gap/2, startY + T_px/2);
+            ctx.lineTo(weldX + gap/2 + gW_half, startY + T_px); ctx.lineTo(weldX + gap/2 + 1000, startY + T_px);
+            ctx.lineTo(weldX + gap/2 + 1000, startY); ctx.closePath();
+        } else {
+            ctx.moveTo(weldX + gap/2 + gW, startY); ctx.lineTo(weldX + gap/2, startY + T_px);
+            ctx.lineTo(weldX + gap/2 + 1000, startY + T_px); ctx.lineTo(weldX + gap/2 + 1000, startY); ctx.closePath();
+        }
+        ctx.fill(); ctx.stroke();
+
+        // --- 余盛り描画 ---
+        if (R > 0) {
+            ctx.fillStyle = "#444"; ctx.strokeStyle = "#888";
+            let leftEdge = weldX - gap/2; let rightEdge = weldX + gap/2;
+            if(shape==='single_bevel' || shape==='k_groove') { rightEdge += gW; }
+            else if(shape==='x_groove') { leftEdge -= gW_half; rightEdge += gW_half; }
+            else { leftEdge -= gW; rightEdge += gW; }
+            
+            // 表面余盛り
+            ctx.beginPath(); ctx.moveTo(leftEdge, startY);
+            ctx.quadraticCurveTo((leftEdge+rightEdge)/2, startY - R * scale * 2, rightEdge, startY);
+            ctx.fill(); ctx.stroke();
+            
+            // 裏波・裏面余盛り
+            if (isDouble || (shape==='v_groove' && !isBacking)) {
+                ctx.beginPath(); ctx.moveTo(leftEdge, startY + T_px);
+                ctx.quadraticCurveTo((leftEdge+rightEdge)/2, startY + T_px + R * scale * 2, rightEdge, startY + T_px);
+                ctx.fill(); ctx.stroke();
+            }
+        }
+
+        // --- 裏当て金 ---
+        if (!isDouble) {
+            ctx.fillStyle = "#222"; ctx.fillRect(weldX - 12.5 * scale, startY + T_px, 25 * scale, 9 * scale);
+            ctx.strokeRect(weldX - 12.5 * scale, startY + T_px, 25 * scale, 9 * scale);
+        }
+
+        const originX = (shape === 'single_bevel' || shape === 'k_groove') ? weldX - gap/2 : weldX;
+        ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(0,150,255,0.6)";
+        ctx.beginPath(); ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height); ctx.stroke(); ctx.setLineDash([]);
+
+        const pX = originX + Y0 * scale;
+        ctx.fillStyle = "#ccc"; ctx.fillRect(pX - 15, startY - 20, 30, 20);
+        if (W > 0) {
+            ctx.strokeStyle = "#00ff41"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pX, startY);
+            let fX, fY;
+            if (!isRef) { 
+                fX = pX - W * Math.sin(theta) * scale; fY = startY + W * Math.cos(theta) * scale; ctx.lineTo(fX, fY); 
+            } else {
+                const rX = pX - eff_T * Math.tan(theta) * scale; ctx.lineTo(rX, startY + eff_T * scale);
+                const bW = eff_T / Math.cos(theta);
+                fX = rX - (W - bW) * Math.sin(theta) * scale; fY = (startY + eff_T * scale) - (W - bW) * Math.cos(theta) * scale;
+                ctx.lineTo(fX, fY);
+            }
+            ctx.stroke();
+            ctx.beginPath(); ctx.arc(fX, fY, 6, 0, Math.PI*2); ctx.fillStyle = "#ff3e3e"; ctx.fill();
+        }
+    }
     draw();
 </script>
 </body>
