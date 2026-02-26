@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Manual Edition v42)</title>
+    <title>UT-Visualizer Pro (Manual Edition v46)</title>
     <style>
-        :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; }
+        :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; --edit-color: #ff9900; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow-x: hidden; }
         header { padding: 12px 20px; border-bottom: 2px solid var(--accent-color); background-color: #000; display: flex; justify-content: space-between; align-items: center; }
         .main-container { display: flex; flex: 1; overflow: hidden; flex-direction: row; width: 100%; }
@@ -27,17 +27,29 @@
         .record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .btn { background: #333; color: #fff; border: 1px solid var(--accent-color); padding: 5px 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn:hover { background: var(--accent-color); color: #000; }
-        .btn-record { background: rgba(0, 255, 65, 0.2); width: 100%; padding: 12px; font-size: 1rem; margin-top: 5px; border-radius: 4px; }
+        
+        .action-buttons { display: flex; gap: 5px; margin-top: 5px; }
+        .btn-record { background: rgba(0, 255, 65, 0.2); flex: 1; padding: 12px; font-size: 1rem; border-radius: 4px; border: 1px solid var(--accent-color); color: #fff; cursor: pointer; font-weight: bold; }
+        .btn-record.mode-edit { background: rgba(255, 153, 0, 0.2); border-color: var(--edit-color); color: #fff; }
+        .btn-cancel { display: none; background: #333; border: 1px solid #888; color: #ccc; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
         .btn-reset { border-color: var(--fail-color); color: var(--fail-color); padding: 4px 8px; font-size: 0.8rem; }
         .btn-reset:hover { background: var(--fail-color); color: #fff; }
-        .record-list { max-height: 160px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 0.85rem; }
+        .record-list { max-height: 180px; overflow-y: auto; background: #111; border: 1px solid #444; padding: 5px; font-size: 0.85rem; }
         
-        .record-item { display: flex; flex-direction: column; padding: 8px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.2s; }
+        .record-item { position: relative; display: flex; flex-direction: column; padding: 8px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.2s; }
         .record-item:hover { background: #222; }
+        .record-item.editing-item { border: 2px solid var(--edit-color); background: rgba(255,153,0,0.1); }
         .record-item:last-child { border-bottom: none; }
         .record-item-top { display: flex; justify-content: space-between; align-items: center; color: var(--accent-color); font-weight: bold; margin-bottom: 4px; }
+        .record-item.editing-item .record-item-top { color: var(--edit-color); }
         .record-item-bottom { display: flex; justify-content: space-between; color: #aaa; font-size: 0.75rem; }
-        .btn-delete { background: transparent; border: 1px solid #666; color: #ff3e3e; border-radius: 3px; padding: 2px 10px; font-weight: bold; font-size: 0.9rem; margin-left: 10px; cursor: pointer; }
+        .record-msg { font-size: 0.7rem; margin-top: 4px; padding: 2px 4px; border-radius: 3px; line-height: 1.3; }
+        .msg-absorbed { color: #ff3e3e; background: rgba(255,62,62,0.1); border: 1px solid #ff3e3e; }
+        .msg-survivor { color: var(--accent-color); background: rgba(0,255,65,0.1); border: 1px solid var(--accent-color); }
+        .msg-group { color: #ff9900; background: rgba(255,153,0,0.1); border: 1px solid #ff9900; }
+        
+        .btn-delete { position: absolute; right: 8px; top: 12px; background: #111; border: 1px solid #666; color: #ff3e3e; border-radius: 3px; padding: 4px 10px; font-weight: bold; font-size: 0.9rem; cursor: pointer; z-index: 2; }
         .btn-delete:hover { background: #ff3e3e; color: #fff; border-color: #ff3e3e; }
         
         .sum-result { margin-top: 8px; padding: 10px; background: #000; border: 2px solid #555; text-align: center; font-size: 1.05rem; font-weight: bold; line-height: 1.4; }
@@ -60,7 +72,7 @@
 <body>
 
 <header>
-    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v42</div>
+    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v46</div>
     <div style="font-size: 0.8rem; opacity: 0.7;">製作者 比嘉</div>
 </header>
 
@@ -176,7 +188,7 @@
         
         <div style="border-top: 1px solid #444; margin: 4px 0;"></div>
 
-        <div style="font-size: 0.85rem; color: #ff9900; font-weight: bold; margin-bottom: 2px;">【 記録＆自動総合判定 】</div>
+        <div style="font-size: 0.85rem; color: #ff9900; font-weight: bold; margin-bottom: 2px;">【 記録＆群・総和自動判定 】</div>
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>X位置 (mm)</label>
@@ -195,18 +207,21 @@
             </div>
         </div>
         
-        <button class="btn btn-record" onclick="recordCurrentFlaw()">＋ この位置のキズを記録</button>
+        <div class="action-buttons">
+            <button class="btn-record" id="btnRecord" onclick="recordCurrentFlaw()">＋ この位置のキズを記録</button>
+            <button class="btn-cancel" id="btnCancel" onclick="cancelEdit()">取消</button>
+        </div>
 
         <div class="record-section">
             <div class="record-header">
-                <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem;">📋 野帳データ (タップで復元)</span>
+                <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem;">📋 電子野帳 (JASS 6準拠)</span>
                 <button class="btn btn-reset" onclick="resetRecords()">全消去</button>
             </div>
             <div class="record-list" id="recordList">
                 <div style="color: #666; text-align: center; padding: 10px;">記録がありません</div>
             </div>
             <div class="sum-result" id="sumResult">
-                <div style="font-size: 0.8rem; color: #aaa;">総合判定 (単独＋総和)</div>
+                <div style="font-size: 0.8rem; color: #aaa;">総合判定 (群評価＋総和)</div>
                 <span style="color: #fff;">記録なし</span>
             </div>
         </div>
@@ -223,6 +238,8 @@
     
     let recordedFlaws = [];
     let flawCounter = 0;
+    let editingFlawNo = null; // 編集中のキズNoを保持
+    
     const regionScores = { "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5 };
     const regionNames = ["", "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ"];
 
@@ -276,6 +293,15 @@
         return { S: 0, M: 0, ML: 0, L: 0, LL: 0, ignore: 0 };
     }
 
+    function evaluateSingleScore(rScore, length, limits) {
+        if (length < limits.ignore) return true;
+        if (rScore === 1) return true;
+        if (rScore === 2 && length >= limits.L) return false;
+        if ((rScore === 3 || rScore === 4) && length >= limits.ML) return false;
+        if (rScore === 5 && length >= limits.M) return false;
+        return true;
+    }
+
     function evaluateSingle(region, length, limits) {
         if (length < limits.ignore) return { result: "評価外 (無視)", isPass: true };
         if (region === "I") return { result: "合 格", isPass: true };
@@ -288,72 +314,129 @@
     function updateSumEvaluation(t, wLen) {
         const sumBox = document.getElementById('sumResult');
         if (recordedFlaws.length === 0) {
-            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総合判定 (単独＋総和)</div><span style="color: #fff;">記録なし</span>`;
+            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総合判定 (群評価＋総和)</div><span style="color: #fff;">記録なし</span>`;
             sumBox.style.borderColor = "#555";
             return;
         }
 
         const limits = getLimits(t);
-        let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
-        let merged = [];
-        let hasSingleReject = false;
-        
-        for (let f of sorted) {
-            if (f.isExcluded) continue;
-            
-            // 単独キズの合否チェック (評価対象のキズのみ)
-            let singleEval = evaluateSingle(f.region, f.length, limits);
-            if (!singleEval.isPass) {
-                hasSingleReject = true;
-            }
+        const l_0 = limits.ignore;
 
-            // 同一欠陥の結合処理
-            let start = f.x; let end = f.x + f.length; let rScore = regionScores[f.region];
-            if (merged.length === 0) {
-                merged.push({ start: start, end: end, maxL: f.length, maxRegScore: rScore, nos: [f.no] });
-            } else {
-                let last = merged[merged.length - 1];
-                let gap = start - last.end;
-                let maxOriginalL = Math.max(last.maxL, f.length);
+        recordedFlaws.forEach(f => {
+            f.UI_isAbsorbed = false;
+            f.UI_msg = "";
+            f.UI_groupLe = null;
+            f.UI_exclude = f.isExcluded || f.length < l_0;
+        });
+
+        let validFlaws = recordedFlaws.map(f => ({...f, originalNo: f.no, isAbsorbed: false}))
+                                      .filter(f => !f.UI_exclude)
+                                      .sort((a, b) => a.x - b.x);
+
+        let absorbedNos = new Set();
+        for (let i = 0; i < validFlaws.length; i++) {
+            if (absorbedNos.has(validFlaws[i].originalNo)) continue;
+            
+            for (let j = i + 1; j < validFlaws.length; j++) {
+                if (absorbedNos.has(validFlaws[j].originalNo)) continue;
                 
-                if (gap <= maxOriginalL) {
-                    last.end = Math.max(last.end, end);
-                    last.maxL = Math.max(last.maxL, f.length);
-                    last.maxRegScore = Math.max(last.maxRegScore, rScore);
-                    last.nos.push(f.no);
-                } else {
-                    merged.push({ start: start, end: end, maxL: f.length, maxRegScore: rScore, nos: [f.no] });
+                let f1 = validFlaws[i]; let f2 = validFlaws[j];
+                let overlap = Math.min(f1.x + f1.length, f2.x + f2.length) - Math.max(f1.x, f2.x);
+                let dd = Math.abs(parseFloat(f1.d) - parseFloat(f2.d));
+                let dk = Math.abs(parseFloat(f1.k) - parseFloat(f2.k));
+
+                if (dd <= l_0 && dk <= l_0 && overlap > 0 && overlap >= Math.min(f1.length, f2.length) / 2) {
+                    let survivor, absorbed;
+                    if (f2.length > f1.length) { survivor = f2; absorbed = f1; } 
+                    else { survivor = f1; absorbed = f2; }
+
+                    let worse;
+                    if (regionScores[f2.region] > regionScores[f1.region]) worse = f2;
+                    else if (regionScores[f1.region] > regionScores[f2.region]) worse = f1;
+                    else worse = survivor;
+
+                    survivor.region = worse.region;
+                    survivor.d = worse.d; survivor.k = worse.k; survivor.y0 = worse.y0; survivor.w = worse.w;
+
+                    absorbed.isAbsorbed = true;
+                    absorbedNos.add(absorbed.originalNo);
+
+                    let msg = "";
+                    if (worse.originalNo === survivor.originalNo) {
+                        msg = `※No.${absorbed.originalNo}を吸収 (全数値を本データから採用)`;
+                    } else {
+                        msg = `※No.${absorbed.originalNo}を吸収 (X,Lは本データ / 領域,d等はNo.${worse.originalNo}を採用)`;
+                    }
+                    survivor.uiMsg = (survivor.uiMsg ? survivor.uiMsg + "<br>" : "") + msg;
+                    absorbed.uiMsg = `[ No.${survivor.originalNo}へ吸収 ]`;
+
+                    if (survivor.originalNo === f2.originalNo) break; 
                 }
             }
         }
 
-        if (merged.length === 0) {
-            sumBox.innerHTML = `<div style="font-size: 0.8rem; color: #aaa;">総合判定 (単独＋総和)</div><span style="color: #00ff41;">有効な欠陥なし (合格)</span>`;
-            sumBox.style.borderColor = "#00ff41";
-            return;
+        let survivors = validFlaws.filter(f => !f.isAbsorbed);
+        let clusters = [];
+
+        for (let f of survivors) {
+            if (clusters.length === 0) {
+                clusters.push({ flaws: [f], start: f.x, end: f.x + f.length, maxReg: regionScores[f.region], d: parseFloat(f.d), k: parseFloat(f.k) });
+                continue;
+            }
+            let c = clusters[clusters.length - 1];
+            let gap = f.x - c.end;
+            let dd = Math.abs(parseFloat(f.d) - c.d);
+            let dk = Math.abs(parseFloat(f.k) - c.k);
+            let maxL = Math.max(c.flaws[c.flaws.length - 1].length, f.length);
+
+            if (gap <= maxL && dd <= l_0 && dk <= l_0) {
+                c.flaws.push(f);
+                c.end = Math.max(c.end, f.x + f.length);
+                c.maxReg = Math.max(c.maxReg, regionScores[f.region]);
+                c.d = parseFloat(f.d); c.k = parseFloat(f.k);
+            } else {
+                clusters.push({ flaws: [f], start: f.x, end: f.x + f.length, maxReg: regionScores[f.region], d: parseFloat(f.d), k: parseFloat(f.k) });
+            }
         }
 
-        let mergeTexts = [];
-        merged.forEach(m => {
-            if (m.nos.length > 1) mergeTexts.push(`No.${m.nos.join('と')}は同一`);
+        validFlaws.forEach(vf => {
+            let orig = recordedFlaws.find(r => r.no === vf.originalNo);
+            if (orig) {
+                orig.UI_isAbsorbed = vf.isAbsorbed;
+                orig.UI_msg = vf.uiMsg || "";
+            }
         });
-        let mergeStr = mergeTexts.length > 0 ? `<div style="color:#ff9900; font-size:0.8rem; margin-top:4px;">※${mergeTexts.join(', ')}</div>` : '';
 
-        // 最悪300mm区間の探索
+        clusters.forEach(c => {
+            let Le = c.end - c.start;
+            c.flaws.forEach(cf => {
+                let orig = recordedFlaws.find(r => r.no === cf.originalNo);
+                if (orig && c.flaws.length > 1) {
+                    orig.UI_groupLe = Le;
+                }
+            });
+        });
+
+        let hasSingleReject = false;
+        clusters.forEach(c => {
+            let Le = c.end - c.start;
+            if (!evaluateSingleScore(c.maxReg, Le, limits)) hasSingleReject = true;
+        });
+
         let windowSize = Math.min(wLen, 300);
         let maxSum = 0; let worstRegScore = 0;
 
-        for (let i = 0; i < merged.length; i++) {
-            let winStart = merged[i].start; let winEnd = winStart + windowSize;
+        for (let i = 0; i < clusters.length; i++) {
+            let winStart = clusters[i].start; let winEnd = winStart + windowSize;
             let currentSum = 0; let currentMaxReg = 0;
             
-            for (let j = 0; j < merged.length; j++) {
-                let m = merged[j];
-                let overlapStart = Math.max(winStart, m.start);
-                let overlapEnd = Math.min(winEnd, m.end);
+            for (let j = 0; j < clusters.length; j++) {
+                let c = clusters[j];
+                let overlapStart = Math.max(winStart, c.start);
+                let overlapEnd = Math.min(winEnd, c.end);
                 if (overlapEnd > overlapStart) {
                     currentSum += (overlapEnd - overlapStart);
-                    currentMaxReg = Math.max(currentMaxReg, m.maxRegScore);
+                    currentMaxReg = Math.max(currentMaxReg, c.maxReg);
                 }
             }
             if (currentSum > maxSum) { maxSum = currentSum; worstRegScore = currentMaxReg; }
@@ -369,21 +452,18 @@
         const isFinalPass = !hasSingleReject && isSumPass;
         
         let judgeStr = "";
-        if (isFinalPass) {
-            judgeStr = "合 格";
-        } else {
-            if (hasSingleReject && !isSumPass) judgeStr = "不合格 (単独・総和NG)";
-            else if (hasSingleReject) judgeStr = "不合格 (単独キズNG)";
+        if (isFinalPass) judgeStr = "合 格";
+        else {
+            if (hasSingleReject && !isSumPass) judgeStr = "不合格 (群・総和NG)";
+            else if (hasSingleReject) judgeStr = "不合格 (群キズ単体NG)";
             else judgeStr = "不合格 (総和NG)";
         }
 
         const color = isFinalPass ? "#00ff41" : "#ff3e3e";
-        
         sumBox.style.borderColor = color;
         sumBox.innerHTML = `
             <div style="font-size: 0.75rem; color: #aaa;">最悪${windowSize}mm区間 (領域: ${maxRegionStr} / 限界 ${limitName}=${sumLimit}mm)</div>
             <span style="color: ${color};">評価長さ和: ${maxSum.toFixed(1)} mm <br><b style="font-size: 1.25rem;">【 ${judgeStr} 】</b></span>
-            ${mergeStr}
         `;
     }
 
@@ -400,45 +480,97 @@
         const t = parseFloat(document.getElementById('thickness').value);
         const wLen = parseFloat(document.getElementById('weldLength').value);
         const estText = document.getElementById('flawType').innerText;
-        
         const isExcluded = estText.includes("評価外") || estText.includes("非欠陥");
         
-        flawCounter++;
-        recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length, isExcluded: isExcluded });
+        if (editingFlawNo !== null) {
+            // 上書き更新処理
+            let target = recordedFlaws.find(f => f.no === editingFlawNo);
+            if(target) {
+                target.x = x; target.y0 = y0; target.w = w; target.d = d; target.k = k; 
+                target.region = region; target.length = length; target.isExcluded = isExcluded;
+            }
+            cancelEdit(); // 編集モード終了
+        } else {
+            // 新規追加処理
+            flawCounter++;
+            recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length, isExcluded: isExcluded });
+            
+            // 入力をリセット
+            document.getElementById('flawX').value = "0.0";
+            document.getElementById('probePos').value = "0.0";
+            document.getElementById('beamPath').value = "0.0";
+            document.getElementById('region').value = "I";
+            document.getElementById('flawLength').value = "0.0";
+        }
         
-        document.getElementById('flawX').value = (x + length + 10).toFixed(1);
-        
-        renderRecordList();
         updateSumEvaluation(t, wLen);
+        renderRecordList();
+        draw(); 
     }
 
     function deleteRecord(no) {
+        if(editingFlawNo === no) cancelEdit(); // 編集中のものを消したら編集解除
         recordedFlaws = recordedFlaws.filter(f => f.no !== no);
-        renderRecordList();
         const t = parseFloat(document.getElementById('thickness').value);
         const wLen = parseFloat(document.getElementById('weldLength').value);
+        
         updateSumEvaluation(t, wLen);
-    }
-
-    function loadRecord(no) {
-        const f = recordedFlaws.find(item => item.no === no);
-        if (!f) return;
-        document.getElementById('flawX').value = f.x;
-        document.getElementById('probePos').value = f.y0;
-        document.getElementById('beamPath').value = f.w;
-        document.getElementById('region').value = f.region;
-        document.getElementById('flawLength').value = f.length;
+        renderRecordList();
         draw();
     }
 
     function resetRecords() {
         if(confirm("野帳データを全消去しますか？")) {
             recordedFlaws = []; flawCounter = 0;
-            renderRecordList();
+            cancelEdit();
             const t = parseFloat(document.getElementById('thickness').value);
             const wLen = parseFloat(document.getElementById('weldLength').value);
+            
             updateSumEvaluation(t, wLen);
+            renderRecordList();
+            draw();
         }
+    }
+
+    // 編集モードへの切り替え
+    function loadRecord(no) {
+        const f = recordedFlaws.find(item => item.no === no);
+        if (!f) return;
+        
+        editingFlawNo = no;
+        document.getElementById('flawX').value = f.x;
+        document.getElementById('probePos').value = f.y0;
+        document.getElementById('beamPath').value = f.w;
+        document.getElementById('region').value = f.region;
+        document.getElementById('flawLength').value = f.length;
+        
+        // ボタンUIの変更
+        const btnRecord = document.getElementById('btnRecord');
+        btnRecord.innerText = `📝 No.${no} を上書き更新`;
+        btnRecord.classList.add('mode-edit');
+        document.getElementById('btnCancel').style.display = 'block';
+        
+        renderRecordList(); // ハイライト反映
+        draw();
+    }
+    
+    // 編集モードのキャンセル
+    function cancelEdit() {
+        editingFlawNo = null;
+        
+        document.getElementById('flawX').value = "0.0";
+        document.getElementById('probePos').value = "0.0";
+        document.getElementById('beamPath').value = "0.0";
+        document.getElementById('region').value = "I";
+        document.getElementById('flawLength').value = "0.0";
+        
+        const btnRecord = document.getElementById('btnRecord');
+        btnRecord.innerText = "＋ この位置のキズを記録";
+        btnRecord.classList.remove('mode-edit');
+        document.getElementById('btnCancel').style.display = 'none';
+        
+        renderRecordList(); // ハイライト解除
+        draw();
     }
 
     function renderRecordList() {
@@ -447,16 +579,38 @@
         let html = "";
         let sorted = [...recordedFlaws].sort((a,b) => a.x - b.x);
         sorted.forEach((f) => {
-            let excludeMark = f.isExcluded ? '<span style="color:#888; font-size:0.7rem; margin-left:4px;">(評価外)</span>' : '';
-            html += `<div class="record-item" onclick="loadRecord(${f.no})" title="タップで当時のデータを復元します">
-                <div class="record-item-top">
-                    <span>No.${f.no} ${excludeMark}</span>
-                    <span style="display:flex; align-items:center;">
-                        領域${regionNames[regionScores[f.region]]} L: ${f.length}
-                        <button class="btn-delete" onclick="event.stopPropagation(); deleteRecord(${f.no})">×</button>
-                    </span>
+            let L_str = `L: ${f.length}`;
+            let itemStyle = "";
+            let msgHtml = "";
+            let editClass = (f.no === editingFlawNo) ? "editing-item" : "";
+
+            if (f.UI_exclude) {
+                msgHtml = `<div class="record-msg" style="color:#888;">(評価外 または サイズ未満のため無視)</div>`;
+            } else if (f.UI_isAbsorbed) {
+                itemStyle = "text-decoration: line-through; opacity: 0.5;";
+                msgHtml = `<div class="record-msg msg-absorbed">${f.UI_msg}</div>`;
+            } else {
+                if (f.UI_msg) {
+                    msgHtml += `<div class="record-msg msg-survivor">${f.UI_msg}</div>`;
+                }
+                if (f.UI_groupLe) {
+                    L_str = `(L: ${f.length})`; // 群キズはカッコで括る
+                    msgHtml += `<div class="record-msg msg-group">※群キズ (Le = ${f.UI_groupLe.toFixed(1)} として評価)</div>`;
+                }
+            }
+            
+            html += `<div class="record-item ${editClass}" onclick="loadRecord(${f.no})" title="タップして数値を修正します">
+                <div style="${itemStyle} padding-right:45px;">
+                    <div class="record-item-top">
+                        <span>No.${f.no}</span>
+                        <span>領域${regionNames[regionScores[f.region]]} ${L_str}</span>
+                    </div>
+                    <div class="record-item-bottom">
+                        <span>X: ${f.x}</span><span>Y: ${f.y0}</span><span>W: ${f.w}</span><span>d: ${f.d}</span><span>K: ${f.k}</span>
+                    </div>
+                    ${msgHtml}
                 </div>
-                <div class="record-item-bottom"><span>X: ${f.x}</span><span>Y: ${f.y0}</span><span>W: ${f.w}</span><span>d: ${f.d}</span><span>K: ${f.k}</span></div>
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteRecord(${f.no})">×</button>
             </div>`;
         });
         listDiv.innerHTML = html;
