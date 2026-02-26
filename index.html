@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Manual Edition v47)</title>
+    <title>UT-Visualizer Pro (Manual Edition v48)</title>
     <style>
         :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; --edit-color: #ff9900; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow-x: hidden; }
@@ -73,7 +73,7 @@
 <body>
 
 <header>
-    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v47</div>
+    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v48</div>
     <div style="font-size: 0.8rem; opacity: 0.7;">製作者 比嘉</div>
 </header>
 
@@ -163,11 +163,11 @@
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>探触子 Y (mm)</label>
-                <input type="number" id="probePos" value="" placeholder="0.0" step="0.5">
+                <input type="number" id="probePos" value="" placeholder="空欄=0" step="0.5">
             </div>
             <div class="input-group flex-1">
                 <label>路程 W (mm)</label>
-                <input type="number" id="beamPath" value="" placeholder="0.0" step="0.1" style="font-weight:bold; color:#fff; background:#222; border: 2px solid var(--accent-color);">
+                <input type="number" id="beamPath" value="" placeholder="必須" step="0.1" style="font-weight:bold; color:#fff; background:#222; border: 2px solid var(--accent-color);">
             </div>
         </div>
 
@@ -193,7 +193,7 @@
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>X位置 (mm)</label>
-                <input type="number" id="flawX" value="" placeholder="0.0" step="1.0">
+                <input type="number" id="flawX" value="" placeholder="空欄=0" step="1.0">
             </div>
             <div class="input-group flex-1" style="flex: 0.6;">
                 <label>領域</label>
@@ -204,7 +204,7 @@
             </div>
             <div class="input-group flex-1" style="flex: 0.8;">
                 <label>長さ L (mm)</label>
-                <input type="number" id="flawLength" value="" placeholder="0.0" step="1.0">
+                <input type="number" id="flawLength" value="" placeholder="空欄=0" step="1.0">
             </div>
         </div>
         
@@ -303,6 +303,15 @@
         return true;
     }
 
+    function evaluateSingle(region, length, limits) {
+        if (length < limits.ignore) return { result: "評価外 (無視)", isPass: true };
+        if (region === "I") return { result: "合 格", isPass: true };
+        if (region === "II" && length >= limits.L) return { result: "不合格 (L以上)", isPass: false };
+        if ((region === "III" || region === "IV") && length >= limits.ML) return { result: "不合格 (ML以上)", isPass: false };
+        if (region === "V" && length >= limits.M) return { result: "不合格 (M以上)", isPass: false };
+        return { result: "合 格", isPass: true };
+    }
+
     function updateSumEvaluation(t, wLen) {
         const sumBox = document.getElementById('sumResult');
         if (recordedFlaws.length === 0) {
@@ -314,17 +323,21 @@
         const limits = getLimits(t);
         const l_0 = limits.ignore;
 
+        // フラグとハイブリッド値の初期化
         recordedFlaws.forEach(f => {
             f.UI_isAbsorbed = false;
             f.UI_msg = "";
             f.UI_groupLe = null;
             f.UI_exclude = f.isExcluded || f.length < l_0;
+            // リセット
+            f.h_y0 = f.y0; f.h_w = f.w; f.h_d = f.d; f.h_k = f.k; f.h_region = f.region;
         });
 
         let validFlaws = recordedFlaws.map(f => ({...f, originalNo: f.no, isAbsorbed: false}))
                                       .filter(f => !f.UI_exclude)
                                       .sort((a, b) => a.x - b.x);
 
+        // --- Pass 1: 同一欠陥の判定とハイブリッド合体 ---
         let absorbedNos = new Set();
         for (let i = 0; i < validFlaws.length; i++) {
             if (absorbedNos.has(validFlaws[i].originalNo)) continue;
@@ -334,33 +347,36 @@
                 
                 let f1 = validFlaws[i]; let f2 = validFlaws[j];
                 let overlap = Math.min(f1.x + f1.length, f2.x + f2.length) - Math.max(f1.x, f2.x);
-                let dd = Math.abs(parseFloat(f1.d) - parseFloat(f2.d));
-                let dk = Math.abs(parseFloat(f1.k) - parseFloat(f2.k));
+                let dd = Math.abs(parseFloat(f1.h_d) - parseFloat(f2.h_d));
+                let dk = Math.abs(parseFloat(f1.h_k) - parseFloat(f2.h_k));
 
+                // JASS 6 完全準拠の合体条件
                 if (dd <= l_0 && dk <= l_0 && overlap > 0 && overlap >= Math.min(f1.length, f2.length) / 2) {
                     let survivor, absorbed;
                     
-                    // 【修正】JASS 6準拠の生き残り判定ロジック
+                    // 【修正】長さが同じ場合は、領域が悪い方を生き残らせる
                     if (f2.length > f1.length) { 
                         survivor = f2; absorbed = f1; 
                     } else if (f1.length > f2.length) { 
                         survivor = f1; absorbed = f2; 
                     } else {
-                        // 長さが同じ場合は、領域が悪い方（数値が大きい方）を生き残りにする
-                        if (regionScores[f2.region] > regionScores[f1.region]) {
+                        if (regionScores[f2.h_region] > regionScores[f1.h_region]) {
                             survivor = f2; absorbed = f1;
                         } else {
                             survivor = f1; absorbed = f2;
                         }
                     }
 
+                    // 領域と数値は、常に「領域が悪い方」から引っ張る
                     let worse;
-                    if (regionScores[f2.region] > regionScores[f1.region]) worse = f2;
-                    else if (regionScores[f1.region] > regionScores[f2.region]) worse = f1;
+                    if (regionScores[f2.h_region] > regionScores[f1.h_region]) worse = f2;
+                    else if (regionScores[f1.h_region] > regionScores[f2.h_region]) worse = f1;
                     else worse = survivor;
 
-                    survivor.region = worse.region;
-                    survivor.d = worse.d; survivor.k = worse.k; survivor.y0 = worse.y0; survivor.w = worse.w;
+                    // ハイブリッド数値を適用
+                    survivor.h_region = worse.h_region;
+                    survivor.h_d = worse.h_d; survivor.h_k = worse.h_k; 
+                    survivor.h_y0 = worse.h_y0; survivor.h_w = worse.h_w;
 
                     absorbed.isAbsorbed = true;
                     absorbedNos.add(absorbed.originalNo);
@@ -379,35 +395,39 @@
             }
         }
 
+        // --- Pass 2: 同一欠陥群の判定 ---
         let survivors = validFlaws.filter(f => !f.isAbsorbed);
         let clusters = [];
 
         for (let f of survivors) {
             if (clusters.length === 0) {
-                clusters.push({ flaws: [f], start: f.x, end: f.x + f.length, maxReg: regionScores[f.region], d: parseFloat(f.d), k: parseFloat(f.k) });
+                clusters.push({ flaws: [f], start: f.x, end: f.x + f.length, maxReg: regionScores[f.h_region], d: parseFloat(f.h_d), k: parseFloat(f.h_k) });
                 continue;
             }
             let c = clusters[clusters.length - 1];
             let gap = f.x - c.end;
-            let dd = Math.abs(parseFloat(f.d) - c.d);
-            let dk = Math.abs(parseFloat(f.k) - c.k);
+            let dd = Math.abs(parseFloat(f.h_d) - c.d);
+            let dk = Math.abs(parseFloat(f.h_k) - c.k);
             let maxL = Math.max(c.flaws[c.flaws.length - 1].length, f.length);
 
             if (gap <= maxL && dd <= l_0 && dk <= l_0) {
                 c.flaws.push(f);
                 c.end = Math.max(c.end, f.x + f.length);
-                c.maxReg = Math.max(c.maxReg, regionScores[f.region]);
-                c.d = parseFloat(f.d); c.k = parseFloat(f.k);
+                c.maxReg = Math.max(c.maxReg, regionScores[f.h_region]);
+                c.d = parseFloat(f.h_d); c.k = parseFloat(f.h_k);
             } else {
-                clusters.push({ flaws: [f], start: f.x, end: f.x + f.length, maxReg: regionScores[f.region], d: parseFloat(f.d), k: parseFloat(f.k) });
+                clusters.push({ flaws: [f], start: f.x, end: f.x + f.length, maxReg: regionScores[f.h_region], d: parseFloat(f.h_d), k: parseFloat(f.h_k) });
             }
         }
 
+        // --- 野帳UIと元の配列へのハイブリッド値の反映 ---
         validFlaws.forEach(vf => {
             let orig = recordedFlaws.find(r => r.no === vf.originalNo);
             if (orig) {
                 orig.UI_isAbsorbed = vf.isAbsorbed;
                 orig.UI_msg = vf.uiMsg || "";
+                // ★重要：合体後の最新数値を元のオブジェクトにも保存しておく
+                orig.h_y0 = vf.h_y0; orig.h_w = vf.h_w; orig.h_d = vf.h_d; orig.h_k = vf.h_k; orig.h_region = vf.h_region;
             }
         });
 
@@ -473,9 +493,9 @@
 
     function recordCurrentFlaw() {
         const wStr = document.getElementById('beamPath').value;
-        if (!wStr || parseFloat(wStr) <= 0) { alert("路程 W を入力して位置を確定してください"); return; }
+        if (!wStr || parseFloat(wStr) <= 0) { alert("路程 W を入力してください"); return; }
         
-        // 空欄対応処理
+        // スマホ空欄対応: 空文字は 0 として処理
         const x_val = document.getElementById('flawX').value;
         const y0_val = document.getElementById('probePos').value;
         const len_val = document.getElementById('flawLength').value;
@@ -505,7 +525,7 @@
             flawCounter++;
             recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length, isExcluded: isExcluded });
             
-            // 記録後はスマホ入力しやすいように空欄にリセット
+            // 記録後はスマホで入力しやすいように空欄にリセット
             document.getElementById('flawX').value = "";
             document.getElementById('probePos').value = "";
             document.getElementById('beamPath').value = "";
@@ -547,10 +567,11 @@
         if (!f) return;
         
         editingFlawNo = no;
+        // ★重要：合体後の最新ハイブリッド数値を入力欄に復元する
         document.getElementById('flawX').value = f.x;
-        document.getElementById('probePos').value = f.y0;
-        document.getElementById('beamPath').value = f.w;
-        document.getElementById('region').value = f.region;
+        document.getElementById('probePos').value = f.h_y0 !== undefined ? f.h_y0 : f.y0;
+        document.getElementById('beamPath').value = f.h_w !== undefined ? f.h_w : f.w;
+        document.getElementById('region').value = f.h_region !== undefined ? f.h_region : f.region;
         document.getElementById('flawLength').value = f.length;
         
         const btnRecord = document.getElementById('btnRecord');
@@ -559,13 +580,14 @@
         document.getElementById('btnCancel').style.display = 'block';
         
         renderRecordList(); 
-        draw();
+        
+        // スマホブラウザのレンダリングタイミングによるW消失バグを防ぐため、ごくわずかに遅延させて描画
+        setTimeout(draw, 10);
     }
     
     function cancelEdit() {
         editingFlawNo = null;
         
-        // キャンセル時も空欄にリセット
         document.getElementById('flawX').value = "";
         document.getElementById('probePos').value = "";
         document.getElementById('beamPath').value = "";
@@ -578,7 +600,7 @@
         document.getElementById('btnCancel').style.display = 'none';
         
         renderRecordList(); 
-        draw();
+        setTimeout(draw, 10);
     }
 
     function renderRecordList() {
@@ -591,6 +613,13 @@
             let itemStyle = "";
             let msgHtml = "";
             let editClass = (f.no === editingFlawNo) ? "editing-item" : "";
+
+            // UIには常に「最新のハイブリッド数値」を表示する
+            let disp_y0 = f.h_y0 !== undefined ? f.h_y0 : f.y0;
+            let disp_w  = f.h_w !== undefined ? f.h_w : f.w;
+            let disp_d  = f.h_d !== undefined ? f.h_d : f.d;
+            let disp_k  = f.h_k !== undefined ? f.h_k : f.k;
+            let disp_reg = f.h_region !== undefined ? f.h_region : f.region;
 
             if (f.UI_exclude) {
                 msgHtml = `<div class="record-msg" style="color:#888;">(評価外 または サイズ未満のため無視)</div>`;
@@ -611,10 +640,10 @@
                 <div style="${itemStyle} padding-right:45px;">
                     <div class="record-item-top">
                         <span>No.${f.no}</span>
-                        <span>領域${regionNames[regionScores[f.region]]} ${L_str}</span>
+                        <span>領域${regionNames[regionScores[disp_reg]]} ${L_str}</span>
                     </div>
                     <div class="record-item-bottom">
-                        <span>X: ${f.x}</span><span>Y: ${f.y0}</span><span>W: ${f.w}</span><span>d: ${f.d}</span><span>K: ${f.k}</span>
+                        <span>X: ${f.x}</span><span>Y: ${disp_y0}</span><span>W: ${disp_w}</span><span>d: ${disp_d}</span><span>K: ${disp_k}</span>
                     </div>
                     ${msgHtml}
                 </div>
@@ -653,12 +682,12 @@
         const R = parseFloat(document.getElementById('reinf').value) || 0;
         const thetaDeg = parseFloat(document.getElementById('angle').value);
         
-        // 空欄の場合は 0 として描画
+        // スマホ空欄対応: "" の場合は安全に 0 にフォールバック
         const inputY = document.getElementById('probePos').value;
         const inputW = document.getElementById('beamPath').value;
         const inputL = document.getElementById('flawLength').value;
         const Y0 = inputY !== "" ? parseFloat(inputY) : 0;
-        const W = inputW !== "" ? parseFloat(inputW) : 0;
+        const W = inputW !== "" && !isNaN(parseFloat(inputW)) ? parseFloat(inputW) : 0;
         const L = inputL !== "" ? parseFloat(inputL) : 0;
         
         const shape = document.getElementById('jointShape').value;
@@ -743,7 +772,6 @@
             judgeOverlay.style.borderColor = evalResult.isPass ? "#00ff41" : "#ff3e3e";
         }
         
-        // 描画が完了してから総和判定を呼ぶ（表示のズレを防ぐため）
         updateSumEvaluation(T, wLen);
         renderCanvas(T, R, eff_T, theta, W, d_disp, isRef, shape, Y0, isDouble, isBacking, profile, D1, D3);
     }
