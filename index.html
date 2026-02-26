@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UT-Visualizer Pro (Manual Edition v46)</title>
+    <title>UT-Visualizer Pro (Manual Edition v47)</title>
     <style>
         :root { --bg-color: #1a1a1a; --panel-color: #262626; --accent-color: #00ff41; --text-color: #e0e0e0; --grid-color: rgba(0, 255, 65, 0.05); --fail-color: #ff3e3e; --edit-color: #ff9900; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow-x: hidden; }
@@ -18,6 +18,7 @@
         .input-group label { display: block; font-size: 0.75rem; color: var(--accent-color); margin-bottom: 2px; white-space: nowrap; }
         .input-group input, .input-group select { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 6px 8px; font-size: 0.95rem; box-sizing: border-box; font-family: 'Courier New', monospace; }
         .input-group input:focus, .input-group select:focus { border-color: var(--accent-color); outline: none; }
+        .input-group input::placeholder { color: #555; font-size: 0.85rem; }
         input[readonly] { color: #888; border-color: #222; }
         .flaw-estimation { border: 1px dashed #ff9900; padding: 8px; background: rgba(255,153,0,0.1); margin-top: 4px; }
         .flaw-estimation label { color: #ff9900; font-size: 0.8rem; font-weight: bold; }
@@ -72,7 +73,7 @@
 <body>
 
 <header>
-    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v46</div>
+    <div style="font-weight: bold; letter-spacing: 1px;">UT-VISUALIZER // MANUAL_v47</div>
     <div style="font-size: 0.8rem; opacity: 0.7;">製作者 比嘉</div>
 </header>
 
@@ -162,11 +163,11 @@
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>探触子 Y (mm)</label>
-                <input type="number" id="probePos" value="0.0" step="0.5">
+                <input type="number" id="probePos" value="" placeholder="0.0" step="0.5">
             </div>
             <div class="input-group flex-1">
                 <label>路程 W (mm)</label>
-                <input type="number" id="beamPath" value="0.0" step="0.1" style="font-weight:bold; color:#fff; background:#222; border: 2px solid var(--accent-color);">
+                <input type="number" id="beamPath" value="" placeholder="0.0" step="0.1" style="font-weight:bold; color:#fff; background:#222; border: 2px solid var(--accent-color);">
             </div>
         </div>
 
@@ -192,7 +193,7 @@
         <div class="flex-row">
             <div class="input-group flex-1">
                 <label>X位置 (mm)</label>
-                <input type="number" id="flawX" value="0.0" step="1.0">
+                <input type="number" id="flawX" value="" placeholder="0.0" step="1.0">
             </div>
             <div class="input-group flex-1" style="flex: 0.6;">
                 <label>領域</label>
@@ -203,7 +204,7 @@
             </div>
             <div class="input-group flex-1" style="flex: 0.8;">
                 <label>長さ L (mm)</label>
-                <input type="number" id="flawLength" value="0.0" step="1.0">
+                <input type="number" id="flawLength" value="" placeholder="0.0" step="1.0">
             </div>
         </div>
         
@@ -238,7 +239,7 @@
     
     let recordedFlaws = [];
     let flawCounter = 0;
-    let editingFlawNo = null; // 編集中のキズNoを保持
+    let editingFlawNo = null;
     
     const regionScores = { "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5 };
     const regionNames = ["", "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ"];
@@ -302,15 +303,6 @@
         return true;
     }
 
-    function evaluateSingle(region, length, limits) {
-        if (length < limits.ignore) return { result: "評価外 (無視)", isPass: true };
-        if (region === "I") return { result: "合 格", isPass: true };
-        if (region === "II" && length >= limits.L) return { result: "不合格 (L以上)", isPass: false };
-        if ((region === "III" || region === "IV") && length >= limits.ML) return { result: "不合格 (ML以上)", isPass: false };
-        if (region === "V" && length >= limits.M) return { result: "不合格 (M以上)", isPass: false };
-        return { result: "合 格", isPass: true };
-    }
-
     function updateSumEvaluation(t, wLen) {
         const sumBox = document.getElementById('sumResult');
         if (recordedFlaws.length === 0) {
@@ -347,8 +339,20 @@
 
                 if (dd <= l_0 && dk <= l_0 && overlap > 0 && overlap >= Math.min(f1.length, f2.length) / 2) {
                     let survivor, absorbed;
-                    if (f2.length > f1.length) { survivor = f2; absorbed = f1; } 
-                    else { survivor = f1; absorbed = f2; }
+                    
+                    // 【修正】JASS 6準拠の生き残り判定ロジック
+                    if (f2.length > f1.length) { 
+                        survivor = f2; absorbed = f1; 
+                    } else if (f1.length > f2.length) { 
+                        survivor = f1; absorbed = f2; 
+                    } else {
+                        // 長さが同じ場合は、領域が悪い方（数値が大きい方）を生き残りにする
+                        if (regionScores[f2.region] > regionScores[f1.region]) {
+                            survivor = f2; absorbed = f1;
+                        } else {
+                            survivor = f1; absorbed = f2;
+                        }
+                    }
 
                     let worse;
                     if (regionScores[f2.region] > regionScores[f1.region]) worse = f2;
@@ -468,39 +472,45 @@
     }
 
     function recordCurrentFlaw() {
-        const x = parseFloat(document.getElementById('flawX').value);
-        const y0 = document.getElementById('probePos').value;
-        const w = document.getElementById('beamPath').value;
+        const wStr = document.getElementById('beamPath').value;
+        if (!wStr || parseFloat(wStr) <= 0) { alert("路程 W を入力して位置を確定してください"); return; }
+        
+        // 空欄対応処理
+        const x_val = document.getElementById('flawX').value;
+        const y0_val = document.getElementById('probePos').value;
+        const len_val = document.getElementById('flawLength').value;
+        
+        const x = x_val !== "" ? parseFloat(x_val) : 0;
+        const y0 = y0_val !== "" ? parseFloat(y0_val) : 0;
+        const length = len_val !== "" ? parseFloat(len_val) : 0;
+        
+        const w = parseFloat(wStr);
         const d = document.getElementById('depth').value;
         const k = document.getElementById('k_value').value;
-        if (d === "-" || k === "-") { alert("Wを入力して位置を確定してください"); return; }
-        
         const region = document.getElementById('region').value;
-        const length = parseFloat(document.getElementById('flawLength').value);
+        
         const t = parseFloat(document.getElementById('thickness').value);
         const wLen = parseFloat(document.getElementById('weldLength').value);
         const estText = document.getElementById('flawType').innerText;
         const isExcluded = estText.includes("評価外") || estText.includes("非欠陥");
         
         if (editingFlawNo !== null) {
-            // 上書き更新処理
             let target = recordedFlaws.find(f => f.no === editingFlawNo);
             if(target) {
                 target.x = x; target.y0 = y0; target.w = w; target.d = d; target.k = k; 
                 target.region = region; target.length = length; target.isExcluded = isExcluded;
             }
-            cancelEdit(); // 編集モード終了
+            cancelEdit();
         } else {
-            // 新規追加処理
             flawCounter++;
             recordedFlaws.push({ no: flawCounter, x: x, y0: y0, w: w, d: d, k: k, region: region, length: length, isExcluded: isExcluded });
             
-            // 入力をリセット
-            document.getElementById('flawX').value = "0.0";
-            document.getElementById('probePos').value = "0.0";
-            document.getElementById('beamPath').value = "0.0";
+            // 記録後はスマホ入力しやすいように空欄にリセット
+            document.getElementById('flawX').value = "";
+            document.getElementById('probePos').value = "";
+            document.getElementById('beamPath').value = "";
             document.getElementById('region').value = "I";
-            document.getElementById('flawLength').value = "0.0";
+            document.getElementById('flawLength').value = "";
         }
         
         updateSumEvaluation(t, wLen);
@@ -509,7 +519,7 @@
     }
 
     function deleteRecord(no) {
-        if(editingFlawNo === no) cancelEdit(); // 編集中のものを消したら編集解除
+        if(editingFlawNo === no) cancelEdit(); 
         recordedFlaws = recordedFlaws.filter(f => f.no !== no);
         const t = parseFloat(document.getElementById('thickness').value);
         const wLen = parseFloat(document.getElementById('weldLength').value);
@@ -532,7 +542,6 @@
         }
     }
 
-    // 編集モードへの切り替え
     function loadRecord(no) {
         const f = recordedFlaws.find(item => item.no === no);
         if (!f) return;
@@ -544,32 +553,31 @@
         document.getElementById('region').value = f.region;
         document.getElementById('flawLength').value = f.length;
         
-        // ボタンUIの変更
         const btnRecord = document.getElementById('btnRecord');
         btnRecord.innerText = `📝 No.${no} を上書き更新`;
         btnRecord.classList.add('mode-edit');
         document.getElementById('btnCancel').style.display = 'block';
         
-        renderRecordList(); // ハイライト反映
+        renderRecordList(); 
         draw();
     }
     
-    // 編集モードのキャンセル
     function cancelEdit() {
         editingFlawNo = null;
         
-        document.getElementById('flawX').value = "0.0";
-        document.getElementById('probePos').value = "0.0";
-        document.getElementById('beamPath').value = "0.0";
+        // キャンセル時も空欄にリセット
+        document.getElementById('flawX').value = "";
+        document.getElementById('probePos').value = "";
+        document.getElementById('beamPath').value = "";
         document.getElementById('region').value = "I";
-        document.getElementById('flawLength').value = "0.0";
+        document.getElementById('flawLength').value = "";
         
         const btnRecord = document.getElementById('btnRecord');
         btnRecord.innerText = "＋ この位置のキズを記録";
         btnRecord.classList.remove('mode-edit');
         document.getElementById('btnCancel').style.display = 'none';
         
-        renderRecordList(); // ハイライト解除
+        renderRecordList(); 
         draw();
     }
 
@@ -594,7 +602,7 @@
                     msgHtml += `<div class="record-msg msg-survivor">${f.UI_msg}</div>`;
                 }
                 if (f.UI_groupLe) {
-                    L_str = `(L: ${f.length})`; // 群キズはカッコで括る
+                    L_str = `(L: ${f.length})`; 
                     msgHtml += `<div class="record-msg msg-group">※群キズ (Le = ${f.UI_groupLe.toFixed(1)} として評価)</div>`;
                 }
             }
@@ -644,11 +652,17 @@
         const G = parseFloat(document.getElementById('rootGap').value);
         const R = parseFloat(document.getElementById('reinf').value) || 0;
         const thetaDeg = parseFloat(document.getElementById('angle').value);
-        const Y0 = parseFloat(document.getElementById('probePos').value);
-        const W = parseFloat(document.getElementById('beamPath').value);
+        
+        // 空欄の場合は 0 として描画
+        const inputY = document.getElementById('probePos').value;
+        const inputW = document.getElementById('beamPath').value;
+        const inputL = document.getElementById('flawLength').value;
+        const Y0 = inputY !== "" ? parseFloat(inputY) : 0;
+        const W = inputW !== "" ? parseFloat(inputW) : 0;
+        const L = inputL !== "" ? parseFloat(inputL) : 0;
+        
         const shape = document.getElementById('jointShape').value;
         const region = document.getElementById('region').value;
-        const L = parseFloat(document.getElementById('flawLength').value);
         const wLen = parseFloat(document.getElementById('weldLength').value) || 300;
         
         const topA = parseFloat(document.getElementById('topAngle').value);
@@ -729,6 +743,7 @@
             judgeOverlay.style.borderColor = evalResult.isPass ? "#00ff41" : "#ff3e3e";
         }
         
+        // 描画が完了してから総和判定を呼ぶ（表示のズレを防ぐため）
         updateSumEvaluation(T, wLen);
         renderCanvas(T, R, eff_T, theta, W, d_disp, isRef, shape, Y0, isDouble, isBacking, profile, D1, D3);
     }
